@@ -1,0 +1,2279 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Home Lab Dashboard</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #172a39;
+            --muted: #5e7180;
+            --line: #dfe7ed;
+            --surface: #fff;
+            --accent: #176780;
+            --stat-bg: #f2f7f9;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: #f1f5f7;
+            font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        .shell {
+            max-width: 1420px;
+            margin: 0 auto;
+            padding: 28px 20px 44px;
+        }
+
+        .page-header {
+            margin-bottom: 22px;
+        }
+
+        .eyebrow {
+            margin: 0 0 3px;
+            color: var(--accent);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.65rem, 3vw, 2.2rem);
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.12rem;
+        }
+
+        p {
+            margin: 0;
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(310px, 0.9fr);
+            align-items: start;
+            gap: 18px;
+        }
+
+        .stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .card {
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--surface);
+            box-shadow: 0 5px 20px rgba(23, 42, 57, 0.04);
+        }
+
+        .card-heading {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .subtle {
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .tiny {
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .network-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px 14px;
+            margin: 0 0 13px;
+        }
+
+            .network-meta p {
+                color: var(--muted);
+                font-size: 0.84rem;
+            }
+
+        input, select, button {
+            font: inherit;
+        }
+
+        input, select {
+            min-width: 0;
+            padding: 9px 11px;
+            border: 1px solid #cbd7df;
+            border-radius: 9px;
+            color: var(--ink);
+            background: white;
+        }
+
+            input:focus-visible, select:focus-visible, button:focus-visible,
+            summary:focus-visible {
+                outline: 3px solid #82cadb;
+                outline-offset: 2px;
+            }
+
+        button {
+            padding: 9px 12px;
+            border: 0;
+            border-radius: 9px;
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            font-weight: 650;
+        }
+
+            button:hover {
+                background: #10536a;
+            }
+
+            button.secondary {
+                padding: 6px 0;
+                background: transparent;
+                color: var(--accent);
+                text-align: left;
+            }
+
+                button.secondary:hover {
+                    text-decoration: underline;
+                }
+
+        #device-filter {
+            width: 170px;
+            max-width: 45%;
+        }
+
+        .device-head, .device-summary {
+            display: grid;
+            grid-template-columns: minmax(115px, 1.1fr) minmax(105px, 1fr) 70px minmax(105px, 1fr) 16px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .device-head {
+            padding: 8px 12px;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .device-list {
+            max-height: min(60vh, 520px);
+            overflow-y: auto;
+            border: 1px solid var(--line);
+            border-radius: 11px;
+        }
+
+        .device-row + .device-row {
+            border-top: 1px solid var(--line);
+        }
+
+        .device-row[open] {
+            background: #f8fbfc;
+        }
+
+        .device-summary {
+            padding: 10px 12px;
+            list-style: none;
+            cursor: pointer;
+        }
+
+            .device-summary::-webkit-details-marker {
+                display: none;
+            }
+
+            .device-summary:hover {
+                background: #f4f8fa;
+            }
+
+        .address {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .metric {
+            font-variant-numeric: tabular-nums;
+            font-size: 0.86rem;
+        }
+
+        .chevron {
+            color: var(--muted);
+        }
+
+        .device-row[open] .chevron {
+            transform: rotate(90deg);
+        }
+
+        .badge {
+            display: inline-block;
+            width: fit-content;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 750;
+            background: #e0f3e7;
+            color: #12663b;
+        }
+
+        .device-row.down .badge {
+            background: #fbe5e5;
+            color: #a32f38;
+        }
+
+        .device-row.missed .badge {
+            background: #fff0d6;
+            color: #875500;
+        }
+
+        .device-extra {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 16px;
+            margin: 0 12px 13px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: white;
+        }
+
+            .device-extra dt {
+                color: var(--muted);
+                font-size: 0.75rem;
+            }
+
+            .device-extra dd {
+                margin: 2px 0 0;
+                font-size: 0.86rem;
+            }
+
+        .card-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .weather-location {
+            font-weight: 650;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 12px;
+        }
+
+        .weather-icon {
+            font-size: 2.35rem;
+            line-height: 1;
+        }
+
+        .temperature {
+            font-size: 2rem;
+            font-weight: 750;
+            line-height: 1.1;
+        }
+
+        .conditions {
+            margin-top: 3px;
+            color: var(--muted);
+        }
+
+        .weather-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 17px;
+        }
+
+            .weather-stats div {
+                padding: 9px;
+                border-radius: 9px;
+                background: #f2f7f9;
+            }
+
+            .weather-stats span {
+                display: block;
+                color: var(--muted);
+                font-size: 0.75rem;
+            }
+
+            .weather-stats strong {
+                font-variant-numeric: tabular-nums;
+                font-size: 0.92rem;
+            }
+
+        #weather-status {
+            margin-top: 8px;
+        }
+
+        .mystery-title {
+            color: #593e83;
+            font-size: 1.2rem;
+            font-weight: 750;
+        }
+
+        .mystery-list {
+            margin: 12px 0 0;
+            padding-left: 22px;
+        }
+
+            .mystery-list li {
+                margin: 6px 0;
+                padding-left: 3px;
+            }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            background: var(--page-bg, #f1f5f7);
+        }
+
+            body[data-theme="dark"] {
+                color-scheme: dark;
+                --page-bg: #151b23;
+                --ink: #edf2f7;
+                --muted: #b0bdca;
+                --line: #405063;
+                --surface: #222c38;
+                --accent: #79c5dd;
+                --input-bg: #18212b;
+                --hover-bg: #2d3b4b;
+                --stat-bg: #293849;
+                --badge-bg: #244c3d;
+                --badge-ink: #b0ebc9;
+            }
+
+            body[data-theme="night"] {
+                color-scheme: dark;
+                --page-bg: #170e10;
+                --ink: #efc3b9;
+                --muted: #c0968e;
+                --line: #593436;
+                --surface: #291719;
+                --accent: #db897c;
+                --input-bg: #1c1012;
+                --hover-bg: #3c2325;
+                --stat-bg: #392123;
+                --badge-bg: #3b3328;
+                --badge-ink: #e2b99d;
+            }
+
+                body[data-theme="dark"] input, body[data-theme="dark"] select,
+                body[data-theme="night"] input, body[data-theme="night"] select {
+                    background: var(--input-bg);
+                    color: var(--ink);
+                    border-color: var(--line);
+                }
+
+                body[data-theme="dark"] .device-row[open], body[data-theme="night"] .device-row[open],
+                body[data-theme="dark"] .device-summary:hover, body[data-theme="night"] .device-summary:hover,
+                body[data-theme="dark"] .device-extra, body[data-theme="night"] .device-extra {
+                    background: var(--hover-bg);
+                }
+
+                body[data-theme="dark"] .weather-stats div, body[data-theme="night"] .weather-stats div {
+                    background: var(--stat-bg);
+                }
+
+                body[data-theme="dark"] .badge, body[data-theme="night"] .badge {
+                    background: var(--badge-bg);
+                    color: var(--badge-ink);
+                }
+
+                body[data-theme="dark"] .device-row.down .badge, body[data-theme="night"] .device-row.down .badge {
+                    background: #542a30;
+                    color: #ffc4c4;
+                }
+
+                body[data-theme="dark"] .device-row.missed .badge, body[data-theme="night"] .device-row.missed .badge {
+                    background: #594526;
+                    color: #ffe0a3;
+                }
+
+                body[data-theme="night"] .mystery-title {
+                    color: #d9a5c2;
+                }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .gear-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .settings-panel {
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+            .settings-panel h2 {
+                margin-bottom: 12px;
+            }
+
+        .settings-form {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+            .settings-form label {
+                display: grid;
+                gap: 5px;
+                font-weight: 650;
+            }
+
+        .settings-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .theme-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+            .theme-options label {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 9px 12px;
+                border: 1px solid var(--line);
+                border-radius: 9px;
+                cursor: pointer;
+            }
+
+        .message {
+            margin-top: 10px;
+            min-height: 1.4em;
+        }
+
+        dialog {
+            width: min(420px,calc(100vw - 30px));
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 24px;
+            color: var(--ink);
+            background: var(--surface);
+        }
+
+            dialog::backdrop {
+                background: rgba(0,0,0,.65);
+            }
+
+            dialog h2 {
+                margin-bottom: 8px;
+            }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Touch-friendly PIN entry, shared by login and PIN changes. */
+        .pin-field {
+            cursor: pointer;
+            font-size: 1.15rem;
+            letter-spacing: .15em;
+            min-height: 48px;
+        }
+
+            .pin-field.active-pin {
+                outline: 3px solid var(--accent);
+                outline-offset: 2px;
+            }
+
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3,minmax(0,1fr));
+            gap: 9px;
+            width: 100%;
+            max-width: 340px;
+            margin: 8px auto;
+        }
+
+            .pin-pad button {
+                min-height: 60px;
+                font-size: 1.45rem;
+                touch-action: manipulation;
+                background: var(--stat-bg);
+                color: var(--ink);
+                border: 1px solid var(--line);
+            }
+
+                .pin-pad button:hover {
+                    background: var(--line);
+                }
+
+            .pin-pad .pin-action {
+                font-size: 1rem;
+            }
+
+        .pin-help {
+            text-align: center;
+        }
+
+        .network-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+            background: transparent;
+            color: var(--ink);
+            text-align: left;
+            padding: 0;
+            border-radius: 10px;
+        }
+
+            .network-toggle:hover {
+                background: transparent;
+            }
+
+            .network-toggle:focus-visible {
+                outline: 3px solid var(--accent);
+                outline-offset: 4px;
+            }
+
+        .network-kpis {
+            display: grid;
+            grid-template-columns: repeat(2,minmax(0,1fr));
+            gap: 12px;
+            margin: 16px 0 4px;
+        }
+
+        .network-kpi {
+            padding: 15px;
+            border-radius: 12px;
+            background: var(--stat-bg);
+        }
+
+            .network-kpi strong {
+                display: block;
+                font-size: clamp(1.6rem,3vw,2.4rem);
+                font-variant-numeric: tabular-nums;
+            }
+
+            .network-kpi span {
+                display: block;
+                color: var(--muted);
+                font-size: .85rem;
+            }
+
+        .network-details {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line);
+        }
+
+        #network-chevron {
+            font-size: 1.6rem;
+            transition: transform .15s;
+        }
+
+        .network-toggle[aria-expanded="true"] #network-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Touch-friendly navigation and a distraction-free clock page. */
+        .header-row {
+            flex-wrap: wrap;
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+            .header-nav button {
+                background: transparent;
+                color: var(--ink);
+                border: 1px solid var(--line);
+                min-height: 46px;
+                padding: 10px 15px;
+            }
+
+                .header-nav button:hover {
+                    background: var(--stat-bg);
+                }
+
+                .header-nav button[aria-current="page"] {
+                    background: var(--accent);
+                    color: var(--surface);
+                    border-color: var(--accent);
+                }
+
+        body[data-theme="dark"] .header-nav button[aria-current="page"],
+        body[data-theme="night"] .header-nav button[aria-current="page"] {
+            color: var(--page-bg);
+        }
+
+        .settings-panel {
+            max-width: 770px;
+        }
+
+        .settings-section {
+            border-top: 1px solid var(--line);
+            padding-top: 22px;
+            margin-top: 22px;
+        }
+
+            .settings-section:first-of-type {
+                margin-top: 18px;
+            }
+
+            .settings-section h3 {
+                font-size: 1.05rem;
+                margin: 0 0 6px;
+            }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            min-height: 68px;
+            width: 100%;
+            padding: 12px 15px;
+            text-align: left;
+            color: var(--ink);
+            background: var(--stat-bg);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+        }
+
+            .setting-row:hover {
+                background: var(--hover-bg,var(--line));
+            }
+
+            .setting-row small {
+                display: block;
+                color: var(--muted);
+                margin-top: 4px;
+                font-weight: 400;
+            }
+
+            .setting-row .chevron {
+                font-size: 1.5rem;
+                transition: transform .15s;
+            }
+
+            .setting-row[aria-expanded="true"] .chevron {
+                transform: rotate(180deg);
+            }
+
+        #pin-change-form {
+            border: 1px solid var(--line);
+            border-top: 0;
+            border-radius: 0 0 12px 12px;
+            padding: 16px;
+            margin-top: -7px;
+        }
+
+        .clock-style-options {
+            display: grid;
+            grid-template-columns: repeat(2,minmax(0,1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .clock-style-option {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            padding: 16px;
+            border: 2px solid var(--line);
+            border-radius: 14px;
+            cursor: pointer;
+            background: var(--surface);
+            font-weight: 650;
+            min-height: 146px;
+        }
+
+            .clock-style-option:has(input:checked) {
+                border-color: var(--accent);
+                background: var(--stat-bg);
+            }
+
+            .clock-style-option:focus-within {
+                outline: 3px solid var(--accent);
+                outline-offset: 2px;
+            }
+
+            .clock-style-option input {
+                width: 20px;
+                height: 20px;
+                accent-color: var(--accent);
+            }
+
+            .clock-style-option .preview {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 54px;
+                font-size: clamp(1.35rem,4vw,2rem);
+                font-variant-numeric: tabular-nums;
+                font-weight: 750;
+                letter-spacing: -.025em;
+            }
+
+                .clock-style-option .preview small {
+                    font-size: .58em;
+                    margin-left: 5px;
+                }
+
+            .clock-style-option .preview-analog {
+                font-size: 2.8rem;
+                line-height: 1;
+            }
+
+            .clock-style-option .preview-flip span {
+                background: var(--ink);
+                color: var(--surface);
+                border-radius: 5px;
+                padding: 5px 9px;
+                margin: 0 3px;
+            }
+
+        .clock-options {
+            display: flex;
+            gap: 22px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+            .clock-options label {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 15px;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                min-height: 50px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .clock-options input {
+                width: 20px;
+                height: 20px;
+                accent-color: var(--accent);
+            }
+
+        .clock-page {
+            min-height: calc(100dvh - 165px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px 10px 65px;
+        }
+
+        .clock-stage {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: clamp(20px,4vh,48px);
+            width: 100%;
+        }
+
+        .clock-digital {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: clamp(6px,1vw,14px);
+            white-space: nowrap;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+            .clock-digital .clock-time {
+                font-size: clamp(3.7rem,14vw,12rem);
+                font-weight: 720;
+                letter-spacing: -.065em;
+            }
+
+            .clock-digital .clock-seconds {
+                font-size: clamp(1.6rem,5vw,4.3rem);
+                font-weight: 600;
+                color: var(--muted);
+            }
+
+            .clock-digital .clock-ampm {
+                font-size: clamp(1rem,3vw,2.5rem);
+                font-weight: 700;
+                letter-spacing: .02em;
+                color: var(--accent);
+            }
+
+        .clock-date {
+            font-size: clamp(1.35rem,3.5vw,2.5rem);
+            color: var(--muted);
+            font-weight: 500;
+            letter-spacing: .02em;
+        }
+
+        .analog-face {
+            width: min(68vmin,490px);
+            height: min(68vmin,490px);
+            min-width: 250px;
+            min-height: 250px;
+            position: relative;
+            border-radius: 50%;
+            border: clamp(6px,1vmin,10px) solid var(--line);
+            background: var(--surface);
+            box-shadow: 0 18px 65px rgba(0,0,0,.09), inset 0 0 0 2px var(--stat-bg);
+        }
+
+        .analog-number {
+            position: absolute;
+            font-size: clamp(1.35rem,3vmin,2rem);
+            font-weight: 750;
+            transform: translate(-50%,-50%);
+        }
+
+        .analog-12 {
+            left: 50%;
+            top: 10%;
+        }
+
+        .analog-3 {
+            left: 90%;
+            top: 50%;
+        }
+
+        .analog-6 {
+            left: 50%;
+            top: 90%;
+        }
+
+        .analog-9 {
+            left: 10%;
+            top: 50%;
+        }
+
+        .analog-tick {
+            position: absolute;
+            inset: 0;
+            transform: rotate(var(--tick-angle));
+        }
+
+            .analog-tick::before {
+                content: "";
+                position: absolute;
+                top: 4%;
+                left: calc(50% - 2px);
+                width: 4px;
+                height: 13px;
+                border-radius: 6px;
+                background: var(--muted);
+            }
+
+        .analog-hand {
+            position: absolute;
+            left: 50%;
+            bottom: 50%;
+            border-radius: 100px;
+            transform-origin: 50% 100%;
+            transform: translateX(-50%) rotate(0deg);
+        }
+
+        .analog-hour {
+            height: 25%;
+            width: 9px;
+            background: var(--ink);
+        }
+
+        .analog-minute {
+            height: 34%;
+            width: 6px;
+            background: var(--ink);
+        }
+
+        .analog-second {
+            height: 40%;
+            width: 3px;
+            background: var(--accent);
+        }
+
+        .analog-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            transform: translate(-50%,-50%);
+        }
+
+        .clock-flip {
+            display: flex;
+            gap: clamp(5px,1vw,20px);
+            align-items: center;
+            justify-content: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .flip-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--ink);
+            color: var(--surface);
+            font-size: clamp(3.25rem,10vw,8rem);
+            font-weight: 800;
+            letter-spacing: -.06em;
+            line-height: 1;
+            border-radius: clamp(8px,1.4vw,20px);
+            min-width: 1.7em;
+            min-height: 1.5em;
+            padding: 15px 8px;
+            box-shadow: 0 8px 0 var(--line);
+            position: relative;
+        }
+
+            .flip-cell::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 50%;
+                border-top: 2px solid var(--surface);
+                opacity: .18;
+            }
+
+        .flip-colon {
+            font-size: clamp(2rem,6vw,5rem);
+            font-weight: 700;
+        }
+
+        .clock-flip .clock-ampm {
+            align-self: flex-end;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .clock-flip .flip-seconds {
+            font-size: clamp(1.25rem,3vw,2.5rem);
+            color: var(--muted);
+            align-self: flex-end;
+        }
+
+        @media (max-width:550px) {
+            .clock-style-options {
+                grid-template-columns: 1fr;
+            }
+
+            .clock-style-option {
+                min-height: 120px;
+            }
+
+            .clock-flip {
+                flex-wrap: wrap;
+            }
+
+            .header-nav button {
+                padding: 9px 12px;
+            }
+
+            .clock-page {
+                min-height: calc(100dvh - 135px);
+            }
+        }
+
+        @media (max-width: 960px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .stack {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 650px) {
+            .shell {
+                padding: 18px 12px 30px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .stack {
+                grid-template-columns: 1fr;
+            }
+
+            .device-head, .device-summary {
+                grid-template-columns: minmax(115px, 1fr) minmax(90px, 1fr) 62px 15px;
+                gap: 6px;
+            }
+
+                .device-head span:nth-child(4), .device-summary .uptime {
+                    display: none;
+                }
+
+                .device-head span:last-child {
+                    display: none;
+                }
+        }
+
+        /* A full-viewport clock. The normal site header is hidden on this page,
+           with two quiet but touch-sized controls available in its place. */
+        body[data-view="clock"] {
+            overflow: hidden;
+        }
+
+            body[data-view="clock"] .shell {
+                max-width: none;
+                width: 100%;
+                min-height: 100dvh;
+                padding: 0;
+            }
+
+            body[data-view="clock"] .page-header {
+                display: none;
+            }
+
+            body[data-view="clock"] .clock-page {
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                height: 100dvh;
+                min-height: 100dvh;
+                padding: clamp(65px,10vh,110px) clamp(14px,4vw,68px) clamp(16px,4vh,45px);
+                overflow: hidden;
+            }
+
+        .clock-page-actions {
+            position: absolute;
+            top: clamp(12px,2.2vh,24px);
+            left: clamp(12px,2vw,30px);
+            right: clamp(12px,2vw,30px);
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+            .clock-page-actions button {
+                min-width: 54px;
+                min-height: 48px;
+                padding: 10px 17px;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                color: var(--ink);
+                background: var(--surface);
+                font-size: 1rem;
+                box-shadow: 0 3px 15px rgba(0,0,0,.04);
+                touch-action: manipulation;
+            }
+
+                .clock-page-actions button:hover {
+                    background: var(--stat-bg);
+                }
+
+        body[data-view="clock"] .clock-stage {
+            width: 100%;
+            max-width: 100%;
+            min-height: 0;
+            gap: clamp(10px,3vh,38px);
+        }
+
+        body[data-view="clock"] .clock-digital .clock-time {
+            font-size: clamp(4rem,16vw,17rem);
+        }
+
+        body[data-view="clock"] .clock-digital .clock-seconds {
+            font-size: clamp(1.6rem,5.2vw,5.3rem);
+        }
+
+        body[data-view="clock"] .clock-digital .clock-ampm {
+            font-size: clamp(1.1rem,3.3vw,3.4rem);
+        }
+
+        body[data-view="clock"] .clock-date {
+            font-size: clamp(1.2rem,3.3vw,3.5rem);
+        }
+
+        body[data-view="clock"] .analog-face {
+            width: min(80vmin, calc(100dvh - 180px), 810px);
+            height: auto;
+            aspect-ratio: 1;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        body[data-view="clock"] .analog-number {
+            font-size: clamp(1rem,3.2vmin,2.5rem);
+        }
+
+        body[data-view="clock"] .clock-flip {
+            flex-wrap: nowrap;
+        }
+
+        body[data-view="clock"] .flip-cell {
+            font-size: clamp(3rem,12vw,10rem);
+        }
+
+        body[data-view="clock"] .flip-seconds {
+            font-size: clamp(1.1rem,3.2vw,3.1rem);
+        }
+
+        body[data-view="clock"] .clock-flip .clock-ampm {
+            font-size: clamp(1rem,2.6vw,2.6rem);
+        }
+
+        /* The dashboard clock is a miniature of the selected full-screen face.
+           The entire card, not just its title, is a touchscreen-sized button. */
+        .clock-widget-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .clock-widget-link {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            align-items: stretch;
+            gap: 12px;
+            padding: 18px 20px;
+            border: 0;
+            border-radius: 16px;
+            text-align: left;
+            color: var(--ink);
+            background: transparent;
+            touch-action: manipulation;
+        }
+
+            .clock-widget-link:hover {
+                background: var(--stat-bg);
+            }
+
+            .clock-widget-link:focus-visible {
+                outline: 3px solid var(--accent);
+                outline-offset: -3px;
+            }
+
+        .clock-widget-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 1.12rem;
+            font-weight: 700;
+        }
+
+            .clock-widget-heading .clock-widget-arrow {
+                color: var(--accent);
+                font-size: 1.4rem;
+            }
+
+        .home-clock-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            min-height: 128px;
+            width: 100%;
+            padding: 13px 8px;
+            border-radius: 12px;
+            background: var(--stat-bg);
+            overflow: hidden;
+        }
+
+            .home-clock-preview .clock-digital {
+                gap: clamp(3px,.6vw,7px);
+            }
+
+                .home-clock-preview .clock-digital .clock-time {
+                    font-size: clamp(2rem,3.8vw,3.6rem);
+                }
+
+                .home-clock-preview .clock-digital .clock-seconds {
+                    font-size: clamp(.95rem,1.7vw,1.4rem);
+                }
+
+                .home-clock-preview .clock-digital .clock-ampm {
+                    font-size: clamp(.8rem,1.3vw,1.15rem);
+                }
+
+            .home-clock-preview .clock-date {
+                font-size: clamp(.77rem,1.05vw,.95rem);
+                text-align: center;
+                letter-spacing: 0;
+            }
+
+            .home-clock-preview .analog-face {
+                width: min(166px,38vw);
+                height: auto;
+                aspect-ratio: 1;
+                min-width: 0;
+                min-height: 0;
+                border-width: 4px;
+                box-shadow: 0 7px 22px rgba(0,0,0,.07);
+            }
+
+            .home-clock-preview .analog-number {
+                font-size: clamp(.8rem,1.45vw,1rem);
+            }
+
+            .home-clock-preview .analog-tick::before {
+                width: 2px;
+                left: calc(50% - 1px);
+                height: 7px;
+            }
+
+            .home-clock-preview .analog-hour {
+                width: 5px;
+            }
+
+            .home-clock-preview .analog-minute {
+                width: 3px;
+            }
+
+            .home-clock-preview .analog-second {
+                width: 2px;
+            }
+
+            .home-clock-preview .analog-center {
+                width: 9px;
+                height: 9px;
+            }
+
+            .home-clock-preview .clock-flip {
+                gap: 4px;
+                flex-wrap: nowrap;
+            }
+
+            .home-clock-preview .flip-cell {
+                min-width: 1.45em;
+                min-height: 1.35em;
+                padding: 5px 4px;
+                font-size: clamp(1.5rem,2.8vw,2.35rem);
+                border-radius: 6px;
+                box-shadow: 0 3px 0 var(--line);
+            }
+
+            .home-clock-preview .flip-colon {
+                font-size: clamp(1.2rem,2.3vw,2rem);
+            }
+
+            .home-clock-preview .flip-seconds,
+            .home-clock-preview .clock-flip .clock-ampm {
+                font-size: clamp(.73rem,1.1vw,.95rem);
+            }
+
+        .clock-widget-hint {
+            align-self: center;
+            text-align: center;
+            color: var(--muted);
+            font-size: .8rem;
+        }
+
+        @media (max-width:650px) {
+            .clock-widget-link {
+                padding: 15px;
+            }
+        }
+
+        @media (max-height:500px) and (orientation:landscape) {
+            body[data-view="clock"] .clock-page {
+                padding-top: 54px;
+                padding-bottom: 8px;
+            }
+
+            body[data-view="clock"] .analog-face {
+                width: min(65vmin, calc(100dvh - 100px), 430px);
+            }
+
+            body[data-view="clock"] .clock-stage {
+                gap: 5px;
+            }
+
+            body[data-view="clock"] .clock-date {
+                font-size: clamp(.85rem,2.2vw,1.4rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <header class="page-header">
+            <p class="eyebrow">Local dashboard</p>
+            <div class="header-row">
+                <h1 id="page-title">Home Lab</h1>
+                <nav class="header-nav" aria-label="Main navigation">
+                    <button id="home-open" type="button" aria-current="page">⌂ Dashboard</button>
+                    <button id="clock-open" type="button">◷ Clock</button>
+                    <button id="settings-open" class="gear-button" type="button" aria-label="Open settings">⚙ Settings</button>
+                </nav>
+            </div>
+        </header>
+
+        <section id="settings-page" class="card settings-panel" hidden aria-labelledby="settings-title">
+            <h2 id="settings-title">Settings</h2>
+            <p class="subtle">Personalize your dashboard and clock, or update your settings PIN.</p>
+
+            <section class="settings-section" aria-labelledby="appearance-title">
+                <h3 id="appearance-title">Appearance</h3>
+                <p class="subtle">Applied to the dashboard, clock, and settings.</p>
+                <div class="theme-options" role="radiogroup" aria-label="Appearance" style="margin-top:14px">
+                    <label><input type="radio" name="theme" value="light"> Light</label>
+                    <label><input type="radio" name="theme" value="dark"> Dark</label>
+                    <label><input type="radio" name="theme" value="night"> Night (dim red)</label>
+                </div>
+                <p id="theme-message" class="message subtle" role="status"></p>
+            </section>
+
+            <section class="settings-section" aria-labelledby="clock-settings-title">
+                <h3 id="clock-settings-title">Clock display</h3>
+                <p class="subtle">Choose your clock's look. Changes save automatically and use this device's local time.</p>
+                <div class="clock-style-options" role="radiogroup" aria-label="Clock style">
+                    <label class="clock-style-option">
+                        <span class="preview">10:08 <small>AM</small></span>
+                        <span><input type="radio" name="clock-style" value="digital12"> 12-hour digital</span>
+                    </label>
+                    <label class="clock-style-option">
+                        <span class="preview">22:08</span>
+                        <span><input type="radio" name="clock-style" value="digital24"> 24-hour digital</span>
+                    </label>
+                    <label class="clock-style-option">
+                        <span class="preview preview-analog" aria-hidden="true">◷</span>
+                        <span><input type="radio" name="clock-style" value="analog"> Analog face</span>
+                    </label>
+                    <label class="clock-style-option">
+                        <span class="preview preview-flip"><span>10</span><span>08</span></span>
+                        <span><input type="radio" name="clock-style" value="flip"> Flip style</span>
+                    </label>
+                </div>
+                <div class="clock-options">
+                    <label><input id="clock-show-seconds" type="checkbox"> Show seconds</label>
+                    <label><input id="clock-show-date" type="checkbox"> Show date</label>
+                </div>
+                <p id="clock-message" class="message subtle" role="status"></p>
+                <button id="clock-preview" type="button">Preview clock →</button>
+            </section>
+
+            <section class="settings-section" aria-labelledby="pin-section-title">
+                <h3 id="pin-section-title" class="sr-only">PIN security</h3>
+                <button id="pin-change-toggle" class="setting-row" type="button"
+                        aria-expanded="false" aria-controls="pin-change-form">
+                    <span>
+                        <strong>Change settings PIN</strong>
+                        <small>Tap to reveal the PIN fields and touchscreen keypad.</small>
+                    </span>
+                    <span class="chevron" aria-hidden="true">⌄</span>
+                </button>
+                <form id="pin-change-form" class="settings-form" hidden>
+                    <label>Current PIN <input class="pin-field" readonly name="currentPin" type="password" inputmode="none" pattern="[0-9]{4,12}" minlength="4" maxlength="12" autocomplete="off" required></label>
+                    <label>New PIN <input class="pin-field" readonly name="newPin" type="password" inputmode="none" pattern="[0-9]{4,12}" minlength="4" maxlength="12" autocomplete="new-password" required></label>
+                    <label>Confirm new PIN <input class="pin-field" readonly name="confirmPin" type="password" inputmode="none" pattern="[0-9]{4,12}" minlength="4" maxlength="12" autocomplete="new-password" required></label>
+                    <p id="change-pin-help" class="subtle pin-help">Tap a PIN field, then use the keypad.</p>
+                    <div id="change-pin-pad" class="pin-pad" aria-label="PIN keypad"></div>
+                    <button type="submit">Save new PIN</button>
+                    <p id="pin-change-message" class="message subtle" role="status"></p>
+                </form>
+            </section>
+            <div class="settings-actions">
+                <button id="settings-back" type="button">← Back to dashboard</button>
+                <button id="settings-lock" type="button">Lock settings</button>
+            </div>
+        </section>
+
+        <dialog id="pin-dialog" aria-labelledby="pin-dialog-title">
+            <form id="pin-login-form" class="settings-form">
+                <h2 id="pin-dialog-title">Enter settings PIN</h2>
+                <label>PIN <input id="login-pin" class="pin-field" readonly name="pin" type="password" inputmode="none" pattern="[0-9]{4,12}" minlength="4" maxlength="12" autocomplete="off" required></label>
+                <div id="login-pin-pad" class="pin-pad" aria-label="PIN keypad"></div>
+                <p id="login-message" class="message subtle" role="alert"></p>
+                <div class="settings-actions">
+                    <button type="submit">Unlock</button>
+                    <button id="pin-cancel" type="button">Cancel</button>
+                </div>
+            </form>
+        </dialog>
+
+
+        <!-- Dedicated clock page: no widgets or other dashboard content. -->
+        <main id="clock-page" class="clock-page" hidden aria-label="Clock">
+            <nav class="clock-page-actions" aria-label="Clock navigation">
+                <button id="clock-home" type="button" aria-label="Return to dashboard">← Home</button>
+                <button id="clock-settings" type="button" aria-label="Open settings from clock">⚙ Settings</button>
+            </nav>
+            <div class="clock-stage">
+                <div id="clock-digital" class="clock-digital" role="timer" aria-label="Current time">
+                    <span id="clock-time" class="clock-time">10:08</span>
+                    <span id="clock-seconds" class="clock-seconds">:00</span>
+                    <span id="clock-ampm" class="clock-ampm">AM</span>
+                </div>
+                <div id="clock-analog" class="analog-face" hidden role="img" aria-label="Analog clock">
+                    <span class="analog-number analog-12">12</span><span class="analog-number analog-3">3</span>
+                    <span class="analog-number analog-6">6</span><span class="analog-number analog-9">9</span>
+                    <span class="analog-tick" style="--tick-angle:30deg" aria-hidden="true"></span>
+                    <span class="analog-tick" style="--tick-angle:60deg" aria-hidden="true"></span>
+                    <span class="analog-tick" style="--tick-angle:120deg" aria-hidden="true"></span>
+                    <span class="analog-tick" style="--tick-angle:150deg" aria-hidden="true"></span>
+                    <span class="analog-tick" style="--tick-angle:210deg" aria-hidden="true"></span>
+                    <span class="analog-tick" style="--tick-angle:240deg" aria-hidden="true"></span>
+                    <span class="analog-tick" style="--tick-angle:300deg" aria-hidden="true"></span>
+                    <span class="analog-tick" style="--tick-angle:330deg" aria-hidden="true"></span>
+                    <span id="analog-hour" class="analog-hand analog-hour"></span>
+                    <span id="analog-minute" class="analog-hand analog-minute"></span>
+                    <span id="analog-second" class="analog-hand analog-second"></span>
+                    <span class="analog-center"></span>
+                </div>
+                <div id="clock-flip" class="clock-flip" hidden role="timer" aria-label="Current time">
+                    <span id="flip-hour" class="flip-cell">10</span>
+                    <span class="flip-colon" aria-hidden="true">:</span>
+                    <span id="flip-minute" class="flip-cell">08</span>
+                    <span id="flip-seconds" class="flip-seconds">:00</span>
+                    <span id="flip-ampm" class="clock-ampm">AM</span>
+                </div>
+                <p id="clock-date" class="clock-date">Friday, September 25, 2026</p>
+            </div>
+        </main>
+        <main id="dashboard-page" class="layout">
+            <section class="card" aria-labelledby="devices-title">
+                <button id="network-toggle" class="network-toggle" type="button"
+                        aria-expanded="false" aria-controls="network-details">
+                    <span>
+                        <h2 id="devices-title">Network devices</h2>
+                        <span class="subtle">Tap to view individual devices</span>
+                    </span>
+                    <span id="network-chevron" aria-hidden="true">⌄</span>
+                </button>
+                <div class="network-kpis" aria-live="polite">
+                    <div class="network-kpi"><strong id="network-count">—</strong><span>Devices found</span></div>
+                    <div class="network-kpi"><strong id="network-uptime">—</strong><span>Average uptime</span></div>
+                </div>
+                <div id="network-details" class="network-details" hidden>
+                    <div class="card-heading">
+                        <p class="subtle" id="summary">Waiting for the first scan…</p>
+                        <input id="device-filter" type="search" placeholder="Filter devices"
+                               aria-label="Filter devices by IP or status">
+                    </div>
+                    <div class="network-meta">
+                        <p id="scan-progress">Waiting for a scan to start…</p>
+                        <p id="heartbeat">Connecting to scanner…</p>
+                    </div>
+                    <div class="device-head" aria-hidden="true">
+                        <span>IP address</span><span>Status</span><span>Up %</span>
+                        <span>Uptime</span><span></span>
+                    </div>
+                    <div id="devices" class="device-list" aria-label="Tracked devices"></div>
+                    <p class="card-note">
+                        Select a device for downtime, misses and last seen. Uptime
+                        percentages are estimates since the program started; down status follows
+                        four consecutive missed scans.
+                    </p>
+                </div>
+            </section>
+
+            <div class="stack">
+                <section class="card clock-widget-card" aria-label="Clock preview">
+                    <button id="home-clock-link" class="clock-widget-link" type="button"
+                            aria-label="Open full-screen clock">
+                        <span class="clock-widget-heading">
+                            Clock
+                            <span class="clock-widget-arrow" aria-hidden="true">↗</span>
+                        </span>
+                        <span class="home-clock-preview" aria-hidden="true">
+                            <span id="home-clock-digital" class="clock-digital">
+                                <span id="home-clock-time" class="clock-time">10:08</span>
+                                <span id="home-clock-seconds" class="clock-seconds">:00</span>
+                                <span id="home-clock-ampm" class="clock-ampm">AM</span>
+                            </span>
+                            <span id="home-clock-analog" class="analog-face" hidden>
+                                <span class="analog-number analog-12">12</span>
+                                <span class="analog-number analog-3">3</span>
+                                <span class="analog-number analog-6">6</span>
+                                <span class="analog-number analog-9">9</span>
+                                <span class="analog-tick" style="--tick-angle:30deg"></span>
+                                <span class="analog-tick" style="--tick-angle:60deg"></span>
+                                <span class="analog-tick" style="--tick-angle:120deg"></span>
+                                <span class="analog-tick" style="--tick-angle:150deg"></span>
+                                <span class="analog-tick" style="--tick-angle:210deg"></span>
+                                <span class="analog-tick" style="--tick-angle:240deg"></span>
+                                <span class="analog-tick" style="--tick-angle:300deg"></span>
+                                <span class="analog-tick" style="--tick-angle:330deg"></span>
+                                <span id="home-analog-hour" class="analog-hand analog-hour"></span>
+                                <span id="home-analog-minute" class="analog-hand analog-minute"></span>
+                                <span id="home-analog-second" class="analog-hand analog-second"></span>
+                                <span class="analog-center"></span>
+                            </span>
+                            <span id="home-clock-flip" class="clock-flip" hidden>
+                                <span id="home-flip-hour" class="flip-cell">10</span>
+                                <span class="flip-colon">:</span>
+                                <span id="home-flip-minute" class="flip-cell">08</span>
+                                <span id="home-flip-seconds" class="flip-seconds">:00</span>
+                                <span id="home-flip-ampm" class="clock-ampm">AM</span>
+                            </span>
+                            <span id="home-clock-date" class="clock-date">Friday, September 25, 2026</span>
+                        </span>
+                        <span class="clock-widget-hint">Tap for full-screen clock</span>
+                    </button>
+                </section>
+
+                <section class="card" aria-labelledby="weather-title">
+                    <h2 id="weather-title">Weather now</h2>
+                    <p class="subtle">Near ZIP 37615-5029, Tennessee</p>
+                    <p id="weather-status" class="subtle" role="status">Loading local weather…</p>
+                    <div id="weather-content" hidden>
+                        <p id="weather-location" class="weather-location">ZIP 37615-5029</p>
+                        <div class="weather-main">
+                            <span id="weather-icon" class="weather-icon" aria-hidden="true"></span>
+                            <div>
+                                <div id="temperature" class="temperature"></div>
+                                <p id="conditions" class="conditions"></p>
+                            </div>
+                        </div>
+                        <div class="weather-stats">
+                            <div><span>Humidity</span><strong id="humidity"></strong></div>
+                            <div><span>Feels like</span><strong id="feels-like"></strong></div>
+                            <div><span>Wind</span><strong id="wind"></strong></div>
+                            <div><span>Precipitation</span><strong id="precipitation"></strong></div>
+                        </div>
+                        <p id="weather-time" class="tiny" style="margin-top: 11px"></p>
+                    </div>
+                    <p class="card-note">
+                        Current model conditions for the five-digit ZIP area
+                        refresh every five minutes.
+                        <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather: Open-Meteo</a>.
+                        Your porch sensor can be connected later.
+                    </p>
+                </section>
+
+                <section class="card" aria-labelledby="rosary-title">
+                    <h2 id="rosary-title">Today's rosary mysteries</h2>
+                    <p id="rosary-date" class="subtle"></p>
+                    <p id="mystery-title" class="mystery-title" style="margin-top: 12px"></p>
+                    <p id="rosary-season" class="tiny"></p>
+                    <ol id="mystery-list" class="mystery-list"></ol>
+                    <p class="card-note">
+                        Traditional daily pattern; any set may be prayed.
+                        <a href="https://www.usccb.org/how-to-pray-the-rosary"
+                           target="_blank" rel="noopener">USCCB guide</a>
+                    </p>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const byId = id => document.getElementById(id);
+        const homeZip = "37615-5029";
+        const weatherZip = homeZip.slice(0, 5);
+        let latestSnapshot = null;
+        let selectedLocation = null;
+        let deviceRequestPending = false;
+        let weatherRequestPending = false;
+
+        function formatDuration(totalSeconds) {
+            const seconds = Math.max(0, Math.floor(totalSeconds));
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remaining = seconds % 60;
+            const pad = value => String(value).padStart(2, "0");
+            return days > 0
+                ? days + "d " + pad(hours) + "h " + pad(minutes) + "m " + pad(remaining) + "s"
+                : pad(hours) + "h " + pad(minutes) + "m " + pad(remaining) + "s";
+        }
+
+        function addDetail(list, label, value) {
+            const group = document.createElement("div");
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = String(value);
+            group.append(term, description);
+            list.appendChild(group);
+        }
+
+        function renderDevices() {
+            if (!latestSnapshot) return;
+            const snapshot = latestSnapshot;
+            const search = byId("device-filter").value.trim().toLowerCase();
+            const container = byId("devices");
+            const openAddresses = new Set(
+                Array.from(container.querySelectorAll(".device-row[open]"))
+                    .map(row => row.dataset.address)
+            );
+            const scrollPosition = container.scrollTop;
+            const devices = snapshot.devices.filter(device =>
+                device.address.toLowerCase().includes(search) ||
+                device.status.toLowerCase().includes(search)
+            );
+
+            if (devices.length === 0) {
+                const empty = document.createElement("p");
+                empty.className = "subtle";
+                empty.style.padding = "14px";
+                empty.textContent = snapshot.devices.length
+                    ? "No devices match this filter."
+                    : "No devices have responded yet.";
+                container.replaceChildren(empty);
+                return;
+            }
+
+            const rows = devices.map(device => {
+                const row = document.createElement("details");
+                row.className = "device-row";
+                row.dataset.address = device.address;
+                row.open = openAddresses.has(device.address);
+
+                if (device.status === "DOWN") row.classList.add("down");
+                else if (device.misses > 0) row.classList.add("missed");
+
+                const summary = document.createElement("summary");
+                summary.className = "device-summary";
+                const address = document.createElement("span");
+                address.className = "address";
+                address.textContent = device.address;
+                const status = document.createElement("span");
+                const badge = document.createElement("span");
+                badge.className = "badge";
+                badge.textContent = device.status === "DOWN"
+                    ? "DOWN" : device.misses > 0 ? "UP · " + device.misses + "/4" : "UP";
+                status.appendChild(badge);
+                const upPercent = document.createElement("span");
+                upPercent.className = "metric";
+                upPercent.textContent = device.upPercent + "%";
+                const uptime = document.createElement("span");
+                uptime.className = "metric uptime";
+                uptime.textContent = device.upSinceUnixMilliseconds === null
+                    ? device.uptime
+                    : formatDuration(
+                        (snapshot.serverTimeUnixMilliseconds -
+                            device.upSinceUnixMilliseconds) / 1000);
+                const chevron = document.createElement("span");
+                chevron.className = "chevron";
+                chevron.textContent = "›";
+                summary.append(address, status, upPercent, uptime, chevron);
+
+                const details = document.createElement("dl");
+                details.className = "device-extra";
+                addDetail(details, "Full status", device.status);
+                addDetail(details, "Estimated uptime", uptime.textContent);
+                addDetail(details, "Downtime", device.downSinceUnixMilliseconds === null
+                    ? device.downtime
+                    : formatDuration(
+                        (snapshot.serverTimeUnixMilliseconds -
+                            device.downSinceUnixMilliseconds) / 1000));
+                addDetail(details, "Down percentage", device.downPercent + "%");
+                addDetail(details, "Consecutive misses", device.misses);
+                addDetail(details, "Last seen", device.lastSeen);
+                row.append(summary, details);
+                return row;
+            });
+
+            container.replaceChildren(...rows);
+            container.scrollTop = scrollPosition;
+        }
+
+        async function refreshDevices() {
+            if (deviceRequestPending) return;
+            deviceRequestPending = true;
+            try {
+                const response = await fetch("/api/status", { cache: "no-store" });
+                if (!response.ok) throw new Error("Scanner unavailable");
+                const snapshot = await response.json();
+                if (!Array.isArray(snapshot.devices) ||
+                    typeof snapshot.serverTimeUnixMilliseconds !== "number") {
+                    throw new Error("Program.cs and index.html need to be updated together.");
+                }
+                latestSnapshot = snapshot;
+                byId("network-count").textContent = snapshot.devices.length;
+                byId("network-uptime").textContent = snapshot.devices.length
+                    ? (snapshot.devices.reduce((sum, device) => sum + device.upPercent, 0)
+                        / snapshot.devices.length).toFixed(1) + "%"
+                    : "—";
+                byId("summary").textContent =
+                    "Responded " + snapshot.responding +
+                    " · Tracked " + snapshot.devices.length +
+                    " · Last scan " + snapshot.lastScan;
+                byId("scan-progress").textContent = snapshot.isScanning
+                    ? "Scanning since " + snapshot.scanStarted +
+                    " · " + snapshot.responsesThisScan + " replies so far"
+                    : "Waiting for the next scan";
+                byId("heartbeat").textContent =
+                    "Page updated " + new Date().toLocaleTimeString();
+                renderDevices();
+            } catch (error) {
+                byId("scan-progress").textContent = "Dashboard update failed: " + error.message;
+                byId("heartbeat").textContent =
+                    "Last attempted " + new Date().toLocaleTimeString();
+            } finally {
+                deviceRequestPending = false;
+            }
+        }
+
+        function conditionFor(code, isDay) {
+            if (code === 0) return [isDay ? "☀️" : "🌙", "Clear sky"];
+            if (code === 1) return [isDay ? "🌤️" : "🌙", "Mainly clear"];
+            if (code === 2) return ["⛅", "Partly cloudy"];
+            if (code === 3) return ["☁️", "Overcast"];
+            if (code === 45 || code === 48) return ["🌫️", "Fog"];
+            if (code >= 51 && code <= 57) return ["🌦️", "Drizzle"];
+            if (code >= 61 && code <= 67) return ["🌧️", "Rain"];
+            if (code >= 71 && code <= 77) return ["🌨️", "Snow"];
+            if (code >= 80 && code <= 82) return ["🌦️", "Rain showers"];
+            if (code === 85 || code === 86) return ["🌨️", "Snow showers"];
+            if (code >= 95) return ["⛈️", "Thunderstorm"];
+            return ["🌡️", "Current conditions"];
+        }
+
+        async function refreshWeather() {
+            if (weatherRequestPending) return;
+            weatherRequestPending = true;
+            byId("weather-status").textContent = "Updating weather…";
+            try {
+                if (!selectedLocation) {
+                    const lookup = await fetch(
+                        "/api/weather/locations?name=" + encodeURIComponent(weatherZip + ", US"),
+                        { cache: "no-store" });
+                    if (!lookup.ok) throw new Error("Weather location unavailable");
+                    const data = await lookup.json();
+                    const place = (data.results || []).find(result =>
+                        result.country_code === "US" &&
+                        Number.isFinite(result.latitude) &&
+                        Number.isFinite(result.longitude));
+                    if (!place) {
+                        throw new Error("Weather location unavailable");
+                    }
+                    selectedLocation = {
+                        latitude: place.latitude,
+                        longitude: place.longitude
+                    };
+                }
+
+                const query = new URLSearchParams({
+                    latitude: String(selectedLocation.latitude),
+                    longitude: String(selectedLocation.longitude)
+                });
+                const response = await fetch("/api/weather/current?" + query, {
+                    cache: "no-store"
+                });
+                if (!response.ok) throw new Error("Weather service unavailable");
+                const weather = await response.json();
+                const current = weather.current;
+                if (!current || !Number.isFinite(current.temperature_2m)) {
+                    throw new Error("Weather data unavailable for this location");
+                }
+                const [icon, description] = conditionFor(
+                    current.weather_code, current.is_day === 1);
+                byId("weather-icon").textContent = icon;
+                byId("temperature").textContent =
+                    Math.round(current.temperature_2m) + "°F";
+                byId("conditions").textContent = description;
+                byId("humidity").textContent =
+                    Math.round(current.relative_humidity_2m) + "%";
+                byId("feels-like").textContent =
+                    Math.round(current.apparent_temperature) + "°F";
+                byId("wind").textContent =
+                    Math.round(current.wind_speed_10m) + " mph";
+                byId("precipitation").textContent =
+                    Number(current.precipitation).toFixed(2) + " in";
+                byId("weather-time").textContent =
+                    "Conditions for " + current.time.replace("T", " ") +
+                    " " + (weather.timezone_abbreviation || "local time");
+                byId("weather-content").hidden = false;
+                byId("weather-status").textContent =
+                    "Checked " + new Date().toLocaleTimeString();
+            } catch (error) {
+                byId("weather-status").textContent = error.message +
+                    " · Retrying in five minutes.";
+            } finally {
+                weatherRequestPending = false;
+            }
+        }
+
+        const mysteries = {
+            Joyful: [
+                "The Annunciation", "The Visitation", "The Nativity",
+                "The Presentation in the Temple", "The Finding in the Temple"
+            ],
+            Sorrowful: [
+                "The Agony in the Garden", "The Scourging at the Pillar",
+                "The Crowning with Thorns", "The Carrying of the Cross",
+                "The Crucifixion and Death"
+            ],
+            Glorious: [
+                "The Resurrection", "The Ascension",
+                "The Descent of the Holy Spirit", "The Assumption",
+                "The Coronation of Mary"
+            ],
+            Luminous: [
+                "The Baptism of Christ in the Jordan", "The Wedding Feast at Cana",
+                "Jesus' Proclamation of the Coming of the Kingdom of God",
+                "The Transfiguration", "The Institution of the Eucharist"
+            ]
+        };
+
+        function easterSunday(year) {
+            const a = year % 19;
+            const b = Math.floor(year / 100);
+            const c = year % 100;
+            const d = Math.floor(b / 4);
+            const e = b % 4;
+            const f = Math.floor((b + 8) / 25);
+            const g = Math.floor((b - f + 1) / 3);
+            const h = (19 * a + b - d - g + 15) % 30;
+            const i = Math.floor(c / 4);
+            const k = c % 4;
+            const l = (32 + 2 * e + 2 * i - h - k) % 7;
+            const m = Math.floor((a + 11 * h + 22 * l) / 451);
+            const month = Math.floor((h + l - 7 * m + 114) / 31);
+            const day = ((h + l - 7 * m + 114) % 31) + 1;
+            return new Date(year, month - 1, day);
+        }
+
+        function firstAdventSunday(year) {
+            const date = new Date(year, 10, 27);
+            while (date.getDay() !== 0) date.setDate(date.getDate() + 1);
+            return date;
+        }
+
+        function mysteryForDate(date) {
+            const day = date.getDay();
+            if (day === 1 || day === 6) return ["Joyful", ""];
+            if (day === 2 || day === 5) return ["Sorrowful", ""];
+            if (day === 3) return ["Glorious", ""];
+            if (day === 4) return ["Luminous", ""];
+
+            const today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const easter = easterSunday(date.getFullYear());
+            const ashWednesday = new Date(easter);
+            ashWednesday.setDate(ashWednesday.getDate() - 46);
+            if (today >= ashWednesday && today < easter) {
+                return ["Sorrowful", "Sunday in Lent"];
+            }
+            const advent = firstAdventSunday(date.getFullYear());
+            if (today >= advent && today < new Date(date.getFullYear(), 11, 25)) {
+                return ["Joyful", "Sunday in Advent"];
+            }
+            return ["Glorious", "Sunday"];
+        }
+
+        function renderRosary() {
+            const today = new Date();
+            const [set, season] = mysteryForDate(today);
+            byId("rosary-date").textContent = new Intl.DateTimeFormat(undefined, {
+                weekday: "long", month: "long", day: "numeric", year: "numeric"
+            }).format(today);
+            byId("mystery-title").textContent = set + " Mysteries";
+            byId("rosary-season").textContent = season;
+            const items = mysteries[set].map(name => {
+                const item = document.createElement("li");
+                item.textContent = name;
+                return item;
+            });
+            byId("mystery-list").replaceChildren(...items);
+        }
+
+        // Load the saved appearance even when the settings page is locked.
+        async function requestSettings(url, data) {
+            const response = await fetch(url, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                credentials: "same-origin", body: JSON.stringify(data || {})
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || "Settings request failed.");
+            return result;
+        }
+
+        function applyTheme(theme) {
+            const selected = ["light", "dark", "night"].includes(theme) ? theme : "light";
+            document.body.dataset.theme = selected;
+            const radio = document.querySelector('input[name="theme"][value="' + selected + '"]');
+            if (radio) radio.checked = true;
+        }
+
+        async function loadTheme() {
+            try {
+                const response = await fetch("/api/settings/theme", { cache: "no-store" });
+                if (response.ok) applyTheme((await response.json()).theme);
+            } catch { /* Keep light mode if the server is temporarily unavailable. */ }
+        }
+
+        // Clock settings are persisted by the C# server, so all screens on the LAN agree.
+        const clockStyles = ["digital12", "digital24", "analog", "flip"];
+        let clockPreferences = { style: "digital12", showSeconds: true, showDate: true };
+        let activePage = "dashboard";
+        let settingsReturnPage = "dashboard";
+        let clockSavePending = false;
+
+        function applyClockPreferences(preferences) {
+            clockPreferences = {
+                style: clockStyles.includes(preferences.style) ? preferences.style : "digital12",
+                showSeconds: preferences.showSeconds !== false,
+                showDate: preferences.showDate !== false
+            };
+            const radio = document.querySelector('input[name="clock-style"][value="' +
+                clockPreferences.style + '"]');
+            if (radio) radio.checked = true;
+            byId("clock-show-seconds").checked = clockPreferences.showSeconds;
+            byId("clock-show-date").checked = clockPreferences.showDate;
+            renderClock();
+        }
+
+        async function loadClockSettings() {
+            try {
+                const response = await fetch("/api/settings/clock", { cache: "no-store" });
+                if (!response.ok) throw new Error("Clock preferences unavailable.");
+                applyClockPreferences(await response.json());
+            } catch {
+                byId("clock-message").textContent =
+                    "Could not load clock preferences; showing default settings.";
+            }
+        }
+
+        function renderClock() {
+            const now = new Date();
+            const { style, showSeconds, showDate } = clockPreferences;
+            const hour24 = now.getHours();
+            const hour = style === "digital24" ? hour24 : (hour24 % 12 || 12);
+            const pad = value => String(value).padStart(2, "0");
+            const minute = pad(now.getMinutes());
+            const second = pad(now.getSeconds());
+            const ampm = hour24 < 12 ? "AM" : "PM";
+
+            byId("clock-digital").hidden = style === "analog" || style === "flip";
+            byId("clock-analog").hidden = style !== "analog";
+            byId("clock-flip").hidden = style !== "flip";
+            byId("clock-date").hidden = !showDate;
+            byId("clock-date").textContent = new Intl.DateTimeFormat(undefined, {
+                weekday: "long", month: "long", day: "numeric", year: "numeric"
+            }).format(now);
+
+            byId("clock-time").textContent = hour + ":" + minute;
+            byId("clock-seconds").textContent = ":" + second;
+            byId("clock-seconds").hidden = !showSeconds;
+            byId("clock-ampm").hidden = style === "digital24";
+            byId("clock-ampm").textContent = ampm;
+            byId("clock-digital").setAttribute("aria-label",
+                hour + ":" + minute + (showSeconds ? ":" + second : "") +
+                (style === "digital24" ? "" : " " + ampm));
+
+            byId("flip-hour").textContent = pad(hour24 % 12 || 12);
+            byId("flip-minute").textContent = minute;
+            byId("flip-seconds").textContent = ":" + second;
+            byId("flip-seconds").hidden = !showSeconds;
+            byId("flip-ampm").textContent = ampm;
+            byId("clock-flip").setAttribute("aria-label", hour + ":" + minute +
+                (showSeconds ? ":" + second : "") + " " + ampm);
+
+            byId("analog-hour").style.transform = "translateX(-50%) rotate(" +
+                ((hour24 % 12 + now.getMinutes() / 60) * 30) + "deg)";
+            byId("analog-minute").style.transform = "translateX(-50%) rotate(" +
+                ((now.getMinutes() + now.getSeconds() / 60) * 6) + "deg)";
+            byId("analog-second").style.transform = "translateX(-50%) rotate(" +
+                (now.getSeconds() * 6) + "deg)";
+            byId("analog-second").hidden = !showSeconds;
+            byId("clock-analog").setAttribute("aria-label",
+                "Analog clock showing " + (hour24 % 12 || 12) + ":" + minute + " " + ampm);
+
+            // Use the same time and saved preferences for the dashboard preview.
+            byId("home-clock-digital").hidden = style === "analog" || style === "flip";
+            byId("home-clock-analog").hidden = style !== "analog";
+            byId("home-clock-flip").hidden = style !== "flip";
+            byId("home-clock-date").hidden = !showDate;
+            byId("home-clock-date").textContent = byId("clock-date").textContent;
+            byId("home-clock-time").textContent = hour + ":" + minute;
+            byId("home-clock-seconds").textContent = ":" + second;
+            byId("home-clock-seconds").hidden = !showSeconds;
+            byId("home-clock-ampm").textContent = ampm;
+            byId("home-clock-ampm").hidden = style === "digital24";
+            byId("home-flip-hour").textContent = pad(hour24 % 12 || 12);
+            byId("home-flip-minute").textContent = minute;
+            byId("home-flip-seconds").textContent = ":" + second;
+            byId("home-flip-seconds").hidden = !showSeconds;
+            byId("home-flip-ampm").textContent = ampm;
+            for (const hand of ["hour", "minute", "second"]) {
+                byId("home-analog-" + hand).style.transform =
+                    byId("analog-" + hand).style.transform;
+            }
+            byId("home-analog-second").hidden = !showSeconds;
+            byId("home-clock-link").setAttribute("aria-label",
+                "Open full-screen clock, " + hour + ":" + minute +
+                (showSeconds ? ":" + second : "") +
+                (style === "digital24" ? "" : " " + ampm));
+        }
+
+        function showPage(page) {
+            activePage = page;
+            document.body.dataset.view = page;
+            byId("dashboard-page").hidden = page !== "dashboard";
+            byId("clock-page").hidden = page !== "clock";
+            byId("settings-page").hidden = page !== "settings";
+            byId("page-title").textContent = page === "clock" ? "Clock" :
+                page === "settings" ? "Settings" : "Home Lab";
+            for (const [name, id] of [["dashboard", "home-open"],
+            ["clock", "clock-open"], ["settings", "settings-open"]]) {
+                const control = byId(id);
+                if (page === name) control.setAttribute("aria-current", "page");
+                else control.removeAttribute("aria-current");
+            }
+            byId("settings-back").textContent = settingsReturnPage === "clock"
+                ? "← Back to clock" : "← Back to dashboard";
+            if (page !== "settings") collapseChangePin();
+            if (page === "clock") renderClock();
+            // A tall, scrolled dashboard shouldn't leave the full-screen clock off-screen.
+            window.scrollTo(0, 0);
+        }
+
+        function showSettings() {
+            byId("pin-dialog").close();
+            showPage("settings");
+        }
+        function showDashboard() { showPage("dashboard"); }
+        function showClock() { showPage("clock"); }
+
+        function collapseChangePin() {
+            byId("pin-change-toggle").setAttribute("aria-expanded", "false");
+            byId("pin-change-form").hidden = true;
+            byId("pin-change-form").reset();
+            byId("pin-change-message").textContent = "";
+        }
+
+        // One keypad for login, another shared by the three change-PIN fields.
+        function createPinPad(container, getTarget) {
+            const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "Clear", "0", "⌫"];
+            for (const key of keys) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.textContent = key;
+                button.setAttribute("aria-label", key === "⌫" ? "Backspace" : key);
+                if (key === "Clear" || key === "⌫") button.className = "pin-action";
+                button.addEventListener("click", () => {
+                    const input = getTarget();
+                    if (!input) return;
+                    if (key === "Clear") input.value = "";
+                    else if (key === "⌫") input.value = input.value.slice(0, -1);
+                    else if (input.value.length < 12) input.value += key;
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
+                });
+                container.appendChild(button);
+            }
+        }
+        const changePinFields = Array.from(document.querySelectorAll("#pin-change-form .pin-field"));
+        let activeChangePin = changePinFields[0];
+        function selectChangePin(input) {
+            activeChangePin = input;
+            changePinFields.forEach(field => field.classList.toggle("active-pin", field === input));
+            byId("change-pin-help").textContent =
+                "Entering " + input.closest("label").textContent.trim() + " (4–12 digits)";
+        }
+        changePinFields.forEach(input => {
+            input.addEventListener("click", () => selectChangePin(input));
+            input.addEventListener("focus", () => selectChangePin(input));
+        });
+        selectChangePin(changePinFields[0]);
+        createPinPad(byId("change-pin-pad"), () => activeChangePin);
+        createPinPad(byId("login-pin-pad"), () => byId("login-pin"));
+        // Optional physical-keyboard support without opening a touchscreen keyboard.
+        document.addEventListener("keydown", event => {
+            const input = document.activeElement;
+            if (!input?.classList?.contains("pin-field")) return;
+            if (/^[0-9]$/.test(event.key) && input.value.length < 12) {
+                input.value += event.key; event.preventDefault();
+            } else if (event.key === "Backspace") {
+                input.value = input.value.slice(0, -1); event.preventDefault();
+            }
+        });
+        byId("pin-change-toggle").addEventListener("click", () => {
+            const expanded = byId("pin-change-toggle").getAttribute("aria-expanded") === "true";
+            if (expanded) collapseChangePin();
+            else {
+                byId("pin-change-toggle").setAttribute("aria-expanded", "true");
+                byId("pin-change-form").hidden = false;
+                selectChangePin(changePinFields[0]);
+            }
+        });
+
+        byId("home-open").addEventListener("click", showDashboard);
+        byId("clock-open").addEventListener("click", showClock);
+        byId("clock-preview").addEventListener("click", showClock);
+        byId("home-clock-link").addEventListener("click", showClock);
+        byId("clock-home").addEventListener("click", showDashboard);
+        byId("clock-settings").addEventListener("click", () => byId("settings-open").click());
+
+        byId("network-toggle").addEventListener("click", () => {
+            const toggle = byId("network-toggle");
+            const expanded = toggle.getAttribute("aria-expanded") !== "true";
+            toggle.setAttribute("aria-expanded", String(expanded));
+            byId("network-details").hidden = !expanded;
+            if (expanded) renderDevices();
+        });
+
+        byId("settings-open").addEventListener("click", async () => {
+            settingsReturnPage = activePage === "clock" ? "clock" : "dashboard";
+            try {
+                const response = await fetch("/api/settings/session", { cache: "no-store" });
+                if (response.ok && (await response.json()).authenticated) {
+                    showSettings(); return;
+                }
+            } catch { /* Show PIN prompt and let login report any server error. */ }
+            byId("login-message").textContent = "";
+            byId("login-pin").value = "";
+            byId("pin-dialog").showModal();
+            byId("login-pin").focus();
+        });
+
+        byId("pin-cancel").addEventListener("click", () => byId("pin-dialog").close());
+        byId("pin-login-form").addEventListener("submit", async event => {
+            event.preventDefault();
+            const button = event.currentTarget.querySelector('button[type="submit"]');
+            button.disabled = true;
+            try {
+                await requestSettings("/api/settings/login", { pin: byId("login-pin").value });
+                byId("login-pin").value = "";
+                showSettings();
+            } catch (error) { byId("login-message").textContent = error.message; }
+            finally { button.disabled = false; }
+        });
+
+        document.querySelectorAll('input[name="theme"]').forEach(radio => {
+            radio.addEventListener("change", async () => {
+                const previous = document.body.dataset.theme || "light";
+                try {
+                    const result = await requestSettings("/api/settings/theme", { theme: radio.value });
+                    applyTheme(result.theme);
+                    byId("theme-message").textContent = "Appearance saved.";
+                } catch (error) {
+                    applyTheme(previous);
+                    byId("theme-message").textContent = error.message;
+                }
+            });
+        });
+
+        function currentClockSelection() {
+            return {
+                style: document.querySelector('input[name="clock-style"]:checked')?.value || "digital12",
+                showSeconds: byId("clock-show-seconds").checked,
+                showDate: byId("clock-show-date").checked
+            };
+        }
+        async function saveClockSelection() {
+            if (clockSavePending) return;
+            const previous = { ...clockPreferences };
+            const requested = currentClockSelection();
+            applyClockPreferences(requested);
+            clockSavePending = true;
+            const controls = document.querySelectorAll(
+                'input[name="clock-style"],#clock-show-seconds,#clock-show-date');
+            controls.forEach(control => control.disabled = true);
+            byId("clock-message").textContent = "Saving clock preferences…";
+            try {
+                const saved = await requestSettings("/api/settings/clock", requested);
+                applyClockPreferences(saved);
+                byId("clock-message").textContent = "Clock preferences saved.";
+            } catch (error) {
+                applyClockPreferences(previous);
+                byId("clock-message").textContent = error.message;
+            } finally {
+                clockSavePending = false;
+                controls.forEach(control => control.disabled = false);
+            }
+        }
+        document.querySelectorAll('input[name="clock-style"],#clock-show-seconds,#clock-show-date')
+            .forEach(control => control.addEventListener("change", saveClockSelection));
+
+        byId("pin-change-form").addEventListener("submit", async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const currentPin = form.elements.currentPin.value;
+            const newPin = form.elements.newPin.value;
+            if (newPin !== form.elements.confirmPin.value) {
+                byId("pin-change-message").textContent = "New PINs do not match."; return;
+            }
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true;
+            try {
+                const result = await requestSettings("/api/settings/pin", { currentPin, newPin });
+                form.reset();
+                byId("pin-change-message").textContent = result.message;
+                showPage(settingsReturnPage);
+                byId("login-message").textContent = "PIN changed. Unlock with your new PIN.";
+                byId("pin-dialog").showModal();
+            } catch (error) { byId("pin-change-message").textContent = error.message; }
+            finally { button.disabled = false; }
+        });
+
+        byId("settings-back").addEventListener("click", () =>
+            showPage(settingsReturnPage));
+        byId("settings-lock").addEventListener("click", async () => {
+            try { await requestSettings("/api/settings/logout"); }
+            catch { /* The server will also expire the session automatically. */ }
+            showPage(settingsReturnPage);
+        });
+        loadTheme();
+        loadClockSettings();
+        renderClock();
+        setInterval(renderClock, 1000);
+
+        byId("device-filter").addEventListener("input", renderDevices);
+        refreshDevices();
+        refreshWeather();
+        renderRosary();
+        setInterval(refreshDevices, 2000);
+        setInterval(refreshWeather, 5 * 60 * 1000);
+        setInterval(renderRosary, 15 * 60 * 1000);
+        document.addEventListener("visibilitychange", () => {
+            if (!document.hidden) {
+                refreshDevices();
+                refreshWeather();
+                renderRosary();
+            }
+        });
+    </script>
+</body>
+</html>
