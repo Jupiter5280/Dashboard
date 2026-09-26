@@ -272,10 +272,6 @@
             font-size: 0.78rem;
         }
 
-        .weather-location {
-            font-weight: 650;
-        }
-
         .weather-main {
             display: flex;
             align-items: center;
@@ -474,6 +470,96 @@
                 border-radius: 9px;
                 cursor: pointer;
             }
+            /* Clearly disable manual themes while the scheduled red night theme overrides them. */
+            .theme-options.is-locked label {
+                opacity: .42;
+                filter: grayscale(1);
+                cursor: not-allowed;
+            }
+
+            .theme-options.is-locked input {
+                cursor: not-allowed;
+            }
+
+        .schedule-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            min-height: 44px;
+        }
+
+            .schedule-toggle input {
+                width: 23px;
+                height: 23px;
+                accent-color: var(--accent);
+            }
+
+        .schedule-times {
+            display: grid;
+            grid-template-columns: repeat(2,minmax(0,1fr));
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+            .schedule-times label {
+                display: grid;
+                gap: 7px;
+                font-weight: 650;
+            }
+
+            .schedule-times input[type=time] {
+                width: 100%;
+                min-height: 49px;
+                font-size: 1.05rem;
+            }
+
+        .schedule-save {
+            margin-top: 16px;
+            min-height: 46px;
+        }
+
+        #weather-zip {
+            max-width: 260px;
+            width: 100%;
+            font-size: 1.1rem;
+            min-height: 50px;
+        }
+
+        #weather-zip-save {
+            min-height: 48px;
+            justify-self: start;
+        }
+
+        .weather-touch-keypad {
+            width: min(320px,100%);
+        }
+
+            .weather-touch-keypad summary {
+                cursor: pointer;
+                color: var(--accent);
+                padding: 8px 0;
+            }
+
+            .weather-touch-keypad .pin-pad {
+                margin-top: 10px;
+            }
+
+        .schedule-active {
+            margin-top: 12px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            padding: 10px 12px;
+            color: var(--accent);
+            font-weight: 650;
+        }
+
+        @media (max-width:420px) {
+            .schedule-times {
+                grid-template-columns: 1fr;
+            }
+        }
 
         .message {
             margin-top: 10px;
@@ -1342,6 +1428,447 @@
                 font-size: clamp(.85rem,2.2vw,1.4rem);
             }
         }
+
+        /* Shared, touch-sized ambient-sound controls. Both widgets drive one
+           <audio> element, so sound carries on while changing dashboard pages. */
+        .ambient-home {
+            padding: 18px 20px;
+        }
+
+        .ambient-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+            .ambient-heading h2 {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .ambient-heading .music-icon {
+                display: inline-grid;
+                place-items: center;
+                width: 33px;
+                height: 33px;
+                border-radius: 50%;
+                background: var(--stat-bg);
+                color: var(--accent);
+                font-size: 1.15rem;
+            }
+
+        .ambient-on {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            font-size: .78rem;
+        }
+
+        .ambient-dot {
+            background: var(--line);
+            border-radius: 50%;
+            width: 7px;
+            height: 7px;
+        }
+
+        .ambient-on[data-playing="true"] .ambient-dot {
+            background: #60b48c;
+            box-shadow: 0 0 0 3px rgba(90,179,137,.14);
+        }
+
+        .ambient-main {
+            display: flex;
+            align-items: stretch;
+            gap: 9px;
+        }
+
+            .ambient-main label {
+                min-width: 0;
+                flex: 1;
+            }
+
+            .ambient-main select {
+                display: block;
+                width: 100%;
+                min-width: 0;
+                min-height: 50px;
+                background: var(--input-bg,var(--surface));
+                color: var(--ink);
+                border-color: var(--line);
+                text-overflow: ellipsis;
+            }
+
+            .ambient-main .ambient-play {
+                display: grid;
+                place-items: center;
+                flex: 0 0 54px;
+                min-width: 54px;
+                min-height: 50px;
+                font-size: 1.4rem;
+                border-radius: 11px;
+                touch-action: manipulation;
+            }
+
+        .ambient-extra {
+            display: grid;
+            grid-template-columns: minmax(0,1fr) minmax(96px,.7fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+            .ambient-extra label {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                gap: 3px;
+                color: var(--muted);
+                font-size: .76rem;
+                font-weight: 650;
+            }
+
+            .ambient-extra input[type=range] {
+                width: 100%;
+                min-width: 0;
+                padding: 0;
+                min-height: 35px;
+                accent-color: var(--accent);
+                cursor: pointer;
+            }
+
+            .ambient-extra select {
+                min-height: 36px;
+                padding: 5px 7px;
+                background: var(--input-bg,var(--surface));
+                color: var(--ink);
+                border-color: var(--line);
+            }
+
+        .ambient-status {
+            margin-top: 7px;
+            min-height: 1.1em;
+            font-size: .75rem;
+            line-height: 1.25;
+            color: var(--muted);
+        }
+
+        .ambient-source-note {
+            margin-top: 7px;
+            font-size: .7rem;
+            color: var(--muted);
+        }
+
+        /* The clock remains edge-to-edge. A floating, compact sound bar sits
+           just below the face; on a short screen the face scales up/down to fit. */
+        body[data-view="clock"] .clock-page {
+            padding-bottom: clamp(160px,23vh,195px);
+        }
+
+        body[data-view="clock"] .clock-stage {
+            max-height: calc(100dvh - 205px);
+        }
+
+        body[data-view="clock"] .analog-face {
+            width: min(74vmin,calc(100dvh - 280px),740px);
+        }
+
+        .clock-ambient {
+            position: absolute;
+            bottom: clamp(10px,2vh,24px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            width: min(700px,calc(100% - 24px));
+            padding: 11px 16px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: var(--surface);
+            box-shadow: 0 8px 35px rgba(0,0,0,.07);
+        }
+
+            .clock-ambient .ambient-heading {
+                margin-bottom: 7px;
+            }
+
+                .clock-ambient .ambient-heading h2 {
+                    font-size: .96rem;
+                }
+
+                .clock-ambient .ambient-heading .music-icon {
+                    width: 26px;
+                    height: 26px;
+                }
+
+            .clock-ambient .ambient-main select {
+                min-height: 44px;
+            }
+
+            .clock-ambient .ambient-main .ambient-play {
+                min-height: 44px;
+                flex-basis: 50px;
+                min-width: 50px;
+            }
+
+            .clock-ambient .ambient-extra {
+                margin-top: 5px;
+            }
+
+            .clock-ambient .ambient-status {
+                margin-top: 2px;
+            }
+
+        @media (max-width:650px) {
+            .ambient-home {
+                padding: 15px;
+            }
+
+            .clock-ambient {
+                padding: 9px 11px;
+            }
+
+            body[data-view="clock"] .clock-page {
+                padding-bottom: 170px;
+            }
+
+            body[data-view="clock"] .clock-digital .clock-time {
+                font-size: clamp(3.6rem,15vw,8rem);
+            }
+
+            body[data-view="clock"] .analog-face {
+                width: min(78vw,calc(100dvh - 290px));
+            }
+        }
+
+        @media (max-height:500px) and (orientation:landscape) {
+            body[data-view="clock"] .clock-page {
+                padding-top: 42px;
+                padding-bottom: 108px;
+            }
+
+            body[data-view="clock"] .clock-stage {
+                max-height: calc(100dvh - 142px);
+                gap: 3px;
+            }
+
+            body[data-view="clock"] .clock-digital .clock-time {
+                font-size: clamp(2.8rem,14vh,6rem);
+            }
+
+            body[data-view="clock"] .analog-face {
+                width: min(53vmin,calc(100dvh - 150px),300px);
+            }
+
+            body[data-view="clock"] .clock-date {
+                font-size: .85rem;
+            }
+
+            .clock-ambient {
+                padding: 5px 10px;
+                bottom: 5px;
+            }
+
+                .clock-ambient .ambient-heading {
+                    display: none;
+                }
+
+                .clock-ambient .ambient-main select,
+                .clock-ambient .ambient-main .ambient-play {
+                    min-height: 35px;
+                }
+
+                .clock-ambient .ambient-main .ambient-play {
+                    flex-basis: 42px;
+                    min-width: 42px;
+                }
+
+                .clock-ambient .ambient-extra {
+                    margin-top: 2px;
+                    gap: 6px;
+                }
+
+                    .clock-ambient .ambient-extra input[type=range] {
+                        min-height: 23px;
+                    }
+
+                    .clock-ambient .ambient-extra select {
+                        min-height: 27px;
+                    }
+
+                .clock-ambient .ambient-status {
+                    font-size: .63rem;
+                }
+        }
+
+
+        /* Home widgets follow DOM order: clock, weather, rosary, music, network.
+           Multiple columns on wider displays; a readable single column on phones. */
+        #dashboard-page.layout {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            max-width: 1280px;
+            width: 100%;
+            margin-inline: auto;
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        #dashboard-page > .card {
+            min-width: 0;
+            height: 100%;
+        }
+
+        .weather-card .weather-main {
+            margin-top: 10px;
+        }
+
+        .weather-card .weather-stats {
+            margin-top: 14px;
+        }
+
+        .weather-card #weather-zip-label {
+            margin-top: 3px;
+        }
+
+        .weather-card #weather-status[hidden] {
+            display: none;
+        }
+        /* Give the expandable network table the whole last row at tablet sizes. */
+        #dashboard-page > .network-card {
+            grid-column: 1 / -1;
+            width: min(100%, 780px);
+            justify-self: center;
+        }
+        /* Wide desktops fit three across: clock / weather / rosary,
+           then music beside a wider network card. */
+        @media (min-width: 1250px) {
+            #dashboard-page.layout {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            #dashboard-page > .network-card {
+                grid-column: span 2;
+                width: 100%;
+                justify-self: stretch;
+            }
+        }
+
+        @media (max-width: 780px) {
+            #dashboard-page.layout {
+                grid-template-columns: minmax(0, 1fr);
+                max-width: 680px;
+            }
+
+            #dashboard-page > .network-card {
+                grid-column: auto;
+                width: 100%;
+            }
+        }
+        /* Slim summary: device count and average uptime stay visible when collapsed. */
+        .network-card {
+            padding: 12px 18px;
+        }
+
+            .network-card .network-toggle {
+                display: grid;
+                grid-template-columns: minmax(150px, 1fr) auto 23px;
+                align-items: center;
+                column-gap: 22px;
+                min-height: 58px;
+                width: 100%;
+                touch-action: manipulation;
+            }
+
+        .network-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .network-title {
+            font-size: 1.08rem;
+            line-height: 1.25;
+            font-weight: 750;
+        }
+
+        .network-help {
+            font-size: .76rem;
+        }
+
+        .network-card .network-kpis {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px 24px;
+            margin: 0;
+        }
+
+        .network-card .network-kpi {
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+            .network-card .network-kpi strong {
+                font-size: 1.3rem;
+                line-height: 1.1;
+            }
+
+            .network-card .network-kpi span {
+                font-size: .72rem;
+            }
+
+        .network-card #network-chevron {
+            line-height: 1;
+            text-align: right;
+        }
+
+        .network-card .network-details {
+            margin-top: 12px;
+            padding-top: 16px;
+        }
+
+        @media (max-width:600px) {
+            .network-card {
+                padding: 10px 14px;
+            }
+
+                .network-card .network-toggle {
+                    grid-template-columns: minmax(0,1fr) 22px;
+                    gap: 9px 10px;
+                }
+
+                .network-card .network-label {
+                    grid-column: 1;
+                    grid-row: 1;
+                }
+
+                .network-card .network-kpis {
+                    grid-column: 1;
+                    grid-row: 2;
+                    justify-content: flex-start;
+                    gap: 12px 23px;
+                }
+
+                .network-card .network-kpi {
+                    text-align: left;
+                }
+
+                    .network-card .network-kpi strong {
+                        font-size: 1.18rem;
+                    }
+
+                .network-card #network-chevron {
+                    grid-column: 2;
+                    grid-row: 1 / span 2;
+                }
+        }
     </style>
 </head>
 <body>
@@ -1365,12 +1892,64 @@
             <section class="settings-section" aria-labelledby="appearance-title">
                 <h3 id="appearance-title">Appearance</h3>
                 <p class="subtle">Applied to the dashboard, clock, and settings.</p>
-                <div class="theme-options" role="radiogroup" aria-label="Appearance" style="margin-top:14px">
+                <div id="theme-options" class="theme-options" role="radiogroup" aria-label="Appearance" style="margin-top:14px">
                     <label><input type="radio" name="theme" value="light"> Light</label>
                     <label><input type="radio" name="theme" value="dark"> Dark</label>
                     <label><input type="radio" name="theme" value="night"> Night (dim red)</label>
                 </div>
+                <p id="theme-lock-message" class="subtle" role="status" hidden></p>
                 <p id="theme-message" class="message subtle" role="status"></p>
+            </section>
+
+            <section class="settings-section" aria-labelledby="sleep-settings-title">
+                <h3 id="sleep-settings-title">Sleep schedule</h3>
+                <p class="subtle">Automatically switch every page to the dim red night theme during your chosen hours. Your regular theme returns when the schedule ends.</p>
+                <form id="sleep-schedule-form">
+                    <label class="schedule-toggle" for="sleep-enabled">
+                        <input id="sleep-enabled" type="checkbox"> Enable sleep schedule
+                    </label>
+                    <div class="schedule-times">
+                        <label for="sleep-start">
+                            Start time
+                            <input id="sleep-start" type="time" value="22:00" step="60" required>
+                        </label>
+                        <label for="sleep-stop">
+                            Stop time
+                            <input id="sleep-stop" type="time" value="07:00" step="60" required>
+                        </label>
+                    </div>
+                    <button id="sleep-save" class="schedule-save" type="submit">Save sleep schedule</button>
+                    <p id="sleep-active-status" class="schedule-active" role="status">Schedule is off.</p>
+                    <p id="sleep-message" class="message subtle" role="status"></p>
+                    <p class="tiny">Times follow the local time zone of the PC running your dashboard. Overnight schedules, such as 10 PM–7 AM, are supported.</p>
+                </form>
+            </section>
+
+            <section class="settings-section" aria-labelledby="weather-settings-title">
+                <h3 id="weather-settings-title">Weather location</h3>
+                <p class="subtle">
+                    Choose the US ZIP code for the weather widget and the weather log.
+                    The server saves a reading every five minutes, even when this page is closed.
+                    Weather data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.
+                </p>
+                <form id="weather-settings-form" class="settings-form">
+                    <label for="weather-zip">
+                        ZIP code
+                        <input id="weather-zip" type="text" inputmode="numeric" autocomplete="postal-code"
+                               pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10"
+                               placeholder="12345 or 12345-6789" value="37615-5029" required>
+                    </label>
+                    <details class="weather-touch-keypad">
+                        <summary>Show touchscreen ZIP keypad</summary>
+                        <div id="weather-zip-pad" class="pin-pad" aria-label="ZIP code keypad"></div>
+                    </details>
+                    <button id="weather-zip-save" type="submit">Save weather ZIP code</button>
+                    <p id="weather-zip-message" class="message subtle" role="status"></p>
+                    <p class="tiny">
+                        ZIP+4 is accepted; weather covers the first five digits.
+                        Saved in dashboard-settings.json.
+                    </p>
+                </form>
             </section>
 
             <section class="settings-section" aria-labelledby="clock-settings-title">
@@ -1479,21 +2058,173 @@
                 </div>
                 <p id="clock-date" class="clock-date">Friday, September 25, 2026</p>
             </div>
+
+            <section class="clock-ambient" aria-labelledby="clock-ambient-title">
+                <div class="ambient-heading">
+                    <h2 id="clock-ambient-title"><span class="music-icon" aria-hidden="true">♫</span> Calming sounds</h2>
+                    <span class="ambient-on" data-ambient-playing="clock">
+                        <span class="ambient-dot"></span>
+                        <span data-ambient-label>Ready</span>
+                    </span>
+                </div>
+                <div class="ambient-main">
+                    <label>
+                        <span class="sr-only">Choose calming sound</span>
+                        <select id="clock-sound-select" aria-label="Choose calming sound"></select>
+                    </label>
+                    <button id="clock-sound-play" type="button" class="ambient-play"
+                            aria-label="Play calming sound" title="Play calming sound">
+                        ▶
+                    </button>
+                </div>
+                <div class="ambient-extra">
+                    <label for="clock-sound-volume">
+                        Volume
+                        <input id="clock-sound-volume" type="range" min="0" max="100" step="1" value="35" aria-label="Sound volume">
+                    </label>
+                    <label for="clock-sound-timer">
+                        Sleep timer
+                        <select id="clock-sound-timer" aria-label="Sleep timer">
+                            <option value="0">Off</option>
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </label>
+                </div>
+                <p id="clock-sound-status" class="ambient-status" role="status">Choose a sound and tap Play.</p>
+            </section>
         </main>
         <main id="dashboard-page" class="layout">
-            <section class="card" aria-labelledby="devices-title">
+            <section class="card clock-widget-card" aria-label="Clock preview">
+                <button id="home-clock-link" class="clock-widget-link" type="button"
+                        aria-label="Open full-screen clock">
+                    <span class="clock-widget-heading">
+                        Clock
+                        <span class="clock-widget-arrow" aria-hidden="true">↗</span>
+                    </span>
+                    <span class="home-clock-preview" aria-hidden="true">
+                        <span id="home-clock-digital" class="clock-digital">
+                            <span id="home-clock-time" class="clock-time">10:08</span>
+                            <span id="home-clock-seconds" class="clock-seconds">:00</span>
+                            <span id="home-clock-ampm" class="clock-ampm">AM</span>
+                        </span>
+                        <span id="home-clock-analog" class="analog-face" hidden>
+                            <span class="analog-number analog-12">12</span>
+                            <span class="analog-number analog-3">3</span>
+                            <span class="analog-number analog-6">6</span>
+                            <span class="analog-number analog-9">9</span>
+                            <span class="analog-tick" style="--tick-angle:30deg"></span>
+                            <span class="analog-tick" style="--tick-angle:60deg"></span>
+                            <span class="analog-tick" style="--tick-angle:120deg"></span>
+                            <span class="analog-tick" style="--tick-angle:150deg"></span>
+                            <span class="analog-tick" style="--tick-angle:210deg"></span>
+                            <span class="analog-tick" style="--tick-angle:240deg"></span>
+                            <span class="analog-tick" style="--tick-angle:300deg"></span>
+                            <span class="analog-tick" style="--tick-angle:330deg"></span>
+                            <span id="home-analog-hour" class="analog-hand analog-hour"></span>
+                            <span id="home-analog-minute" class="analog-hand analog-minute"></span>
+                            <span id="home-analog-second" class="analog-hand analog-second"></span>
+                            <span class="analog-center"></span>
+                        </span>
+                        <span id="home-clock-flip" class="clock-flip" hidden>
+                            <span id="home-flip-hour" class="flip-cell">10</span>
+                            <span class="flip-colon">:</span>
+                            <span id="home-flip-minute" class="flip-cell">08</span>
+                            <span id="home-flip-seconds" class="flip-seconds">:00</span>
+                            <span id="home-flip-ampm" class="clock-ampm">AM</span>
+                        </span>
+                        <span id="home-clock-date" class="clock-date">Friday, September 25, 2026</span>
+                    </span>
+                    <span class="clock-widget-hint">Tap for full-screen clock</span>
+                </button>
+            </section>
+
+            <section class="card weather-card" aria-labelledby="weather-title">
+                <h2 id="weather-title">Weather</h2>
+                <p class="subtle" id="weather-zip-label">ZIP 37615-5029</p>
+                <p id="weather-status" class="subtle" role="status">Loading weather…</p>
+                <div id="weather-content" hidden>
+                    <div class="weather-main">
+                        <span id="weather-icon" class="weather-icon" aria-hidden="true"></span>
+                        <div>
+                            <div id="temperature" class="temperature"></div>
+                            <p id="conditions" class="conditions"></p>
+                        </div>
+                    </div>
+                    <div class="weather-stats">
+                        <div><span>Humidity</span><strong id="humidity"></strong></div>
+                        <div><span>Feels like</span><strong id="feels-like"></strong></div>
+                        <div><span>Wind</span><strong id="wind"></strong></div>
+                        <div><span>Precipitation</span><strong id="precipitation"></strong></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="rosary-title">
+                <h2 id="rosary-title">Today's rosary mysteries</h2>
+                <p id="rosary-date" class="subtle"></p>
+                <p id="mystery-title" class="mystery-title" style="margin-top: 12px"></p>
+                <p id="rosary-season" class="tiny"></p>
+                <ol id="mystery-list" class="mystery-list"></ol>
+                <p class="card-note">
+                    Traditional daily pattern; any set may be prayed.
+                    <a href="https://www.usccb.org/how-to-pray-the-rosary"
+                       target="_blank" rel="noopener">USCCB guide</a>
+                </p>
+            </section>
+
+            <section class="card ambient-home" aria-labelledby="home-ambient-title">
+                <div class="ambient-heading">
+                    <h2 id="home-ambient-title"><span class="music-icon" aria-hidden="true">♫</span> Calming sounds</h2>
+                    <span class="ambient-on" data-ambient-playing="home">
+                        <span class="ambient-dot"></span>
+                        <span data-ambient-label>Ready</span>
+                    </span>
+                </div>
+                <div class="ambient-main">
+                    <label>
+                        <span class="sr-only">Choose calming sound</span>
+                        <select id="home-sound-select" aria-label="Choose calming sound"></select>
+                    </label>
+                    <button id="home-sound-play" type="button" class="ambient-play"
+                            aria-label="Play calming sound" title="Play calming sound">
+                        ▶
+                    </button>
+                </div>
+                <div class="ambient-extra">
+                    <label for="home-sound-volume">
+                        Volume
+                        <input id="home-sound-volume" type="range" min="0" max="100" step="1" value="35" aria-label="Sound volume">
+                    </label>
+                    <label for="home-sound-timer">
+                        Sleep timer
+                        <select id="home-sound-timer" aria-label="Sleep timer">
+                            <option value="0">Off</option>
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </label>
+                </div>
+                <p id="home-sound-status" class="ambient-status" role="status">Choose a sound and tap Play.</p>
+            </section>
+
+            <section class="card network-card" aria-labelledby="devices-title">
                 <button id="network-toggle" class="network-toggle" type="button"
                         aria-expanded="false" aria-controls="network-details">
-                    <span>
-                        <h2 id="devices-title">Network devices</h2>
-                        <span class="subtle">Tap to view individual devices</span>
+                    <span class="network-label">
+                        <span id="devices-title" class="network-title" role="heading" aria-level="2">Network devices</span>
+                        <span class="subtle network-help">Tap to view individual devices</span>
+                    </span>
+                    <span class="network-kpis" aria-live="polite">
+                        <span class="network-kpi"><strong id="network-count">—</strong><span>Devices found</span></span>
+                        <span class="network-kpi"><strong id="network-uptime">—</strong><span>Average uptime</span></span>
                     </span>
                     <span id="network-chevron" aria-hidden="true">⌄</span>
                 </button>
-                <div class="network-kpis" aria-live="polite">
-                    <div class="network-kpi"><strong id="network-count">—</strong><span>Devices found</span></div>
-                    <div class="network-kpi"><strong id="network-uptime">—</strong><span>Average uptime</span></div>
-                </div>
                 <div id="network-details" class="network-details" hidden>
                     <div class="card-heading">
                         <p class="subtle" id="summary">Waiting for the first scan…</p>
@@ -1516,105 +2247,23 @@
                     </p>
                 </div>
             </section>
-
-            <div class="stack">
-                <section class="card clock-widget-card" aria-label="Clock preview">
-                    <button id="home-clock-link" class="clock-widget-link" type="button"
-                            aria-label="Open full-screen clock">
-                        <span class="clock-widget-heading">
-                            Clock
-                            <span class="clock-widget-arrow" aria-hidden="true">↗</span>
-                        </span>
-                        <span class="home-clock-preview" aria-hidden="true">
-                            <span id="home-clock-digital" class="clock-digital">
-                                <span id="home-clock-time" class="clock-time">10:08</span>
-                                <span id="home-clock-seconds" class="clock-seconds">:00</span>
-                                <span id="home-clock-ampm" class="clock-ampm">AM</span>
-                            </span>
-                            <span id="home-clock-analog" class="analog-face" hidden>
-                                <span class="analog-number analog-12">12</span>
-                                <span class="analog-number analog-3">3</span>
-                                <span class="analog-number analog-6">6</span>
-                                <span class="analog-number analog-9">9</span>
-                                <span class="analog-tick" style="--tick-angle:30deg"></span>
-                                <span class="analog-tick" style="--tick-angle:60deg"></span>
-                                <span class="analog-tick" style="--tick-angle:120deg"></span>
-                                <span class="analog-tick" style="--tick-angle:150deg"></span>
-                                <span class="analog-tick" style="--tick-angle:210deg"></span>
-                                <span class="analog-tick" style="--tick-angle:240deg"></span>
-                                <span class="analog-tick" style="--tick-angle:300deg"></span>
-                                <span class="analog-tick" style="--tick-angle:330deg"></span>
-                                <span id="home-analog-hour" class="analog-hand analog-hour"></span>
-                                <span id="home-analog-minute" class="analog-hand analog-minute"></span>
-                                <span id="home-analog-second" class="analog-hand analog-second"></span>
-                                <span class="analog-center"></span>
-                            </span>
-                            <span id="home-clock-flip" class="clock-flip" hidden>
-                                <span id="home-flip-hour" class="flip-cell">10</span>
-                                <span class="flip-colon">:</span>
-                                <span id="home-flip-minute" class="flip-cell">08</span>
-                                <span id="home-flip-seconds" class="flip-seconds">:00</span>
-                                <span id="home-flip-ampm" class="clock-ampm">AM</span>
-                            </span>
-                            <span id="home-clock-date" class="clock-date">Friday, September 25, 2026</span>
-                        </span>
-                        <span class="clock-widget-hint">Tap for full-screen clock</span>
-                    </button>
-                </section>
-
-                <section class="card" aria-labelledby="weather-title">
-                    <h2 id="weather-title">Weather now</h2>
-                    <p class="subtle">Near ZIP 37615-5029, Tennessee</p>
-                    <p id="weather-status" class="subtle" role="status">Loading local weather…</p>
-                    <div id="weather-content" hidden>
-                        <p id="weather-location" class="weather-location">ZIP 37615-5029</p>
-                        <div class="weather-main">
-                            <span id="weather-icon" class="weather-icon" aria-hidden="true"></span>
-                            <div>
-                                <div id="temperature" class="temperature"></div>
-                                <p id="conditions" class="conditions"></p>
-                            </div>
-                        </div>
-                        <div class="weather-stats">
-                            <div><span>Humidity</span><strong id="humidity"></strong></div>
-                            <div><span>Feels like</span><strong id="feels-like"></strong></div>
-                            <div><span>Wind</span><strong id="wind"></strong></div>
-                            <div><span>Precipitation</span><strong id="precipitation"></strong></div>
-                        </div>
-                        <p id="weather-time" class="tiny" style="margin-top: 11px"></p>
-                    </div>
-                    <p class="card-note">
-                        Current model conditions for the five-digit ZIP area
-                        refresh every five minutes.
-                        <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather: Open-Meteo</a>.
-                        Your porch sensor can be connected later.
-                    </p>
-                </section>
-
-                <section class="card" aria-labelledby="rosary-title">
-                    <h2 id="rosary-title">Today's rosary mysteries</h2>
-                    <p id="rosary-date" class="subtle"></p>
-                    <p id="mystery-title" class="mystery-title" style="margin-top: 12px"></p>
-                    <p id="rosary-season" class="tiny"></p>
-                    <ol id="mystery-list" class="mystery-list"></ol>
-                    <p class="card-note">
-                        Traditional daily pattern; any set may be prayed.
-                        <a href="https://www.usccb.org/how-to-pray-the-rosary"
-                           target="_blank" rel="noopener">USCCB guide</a>
-                    </p>
-                </section>
-            </div>
         </main>
     </div>
 
+    <audio id="ambient-audio" loop preload="none"></audio>
+
     <script>
         const byId = id => document.getElementById(id);
-        const homeZip = "37615-5029";
-        const weatherZip = homeZip.slice(0, 5);
+        let savedWeatherZip = "37615-5029";
         let latestSnapshot = null;
-        let selectedLocation = null;
         let deviceRequestPending = false;
         let weatherRequestPending = false;
+        let weatherNeedsRetry = true;
+        let weatherZipDirty = false;
+        let weatherSavePending = false;
+        function showWeatherZip(zip) {
+            byId("weather-zip-label").textContent = "ZIP " + zip;
+        }
 
         function formatDuration(totalSeconds) {
             const seconds = Math.max(0, Math.floor(totalSeconds));
@@ -1774,42 +2423,31 @@
         async function refreshWeather() {
             if (weatherRequestPending) return;
             weatherRequestPending = true;
-            byId("weather-status").textContent = "Updating weather…";
+            if (weatherNeedsRetry) {
+                byId("weather-status").hidden = false;
+                byId("weather-status").textContent = "Waiting for weather…";
+            }
             try {
-                if (!selectedLocation) {
-                    const lookup = await fetch(
-                        "/api/weather/locations?name=" + encodeURIComponent(weatherZip + ", US"),
-                        { cache: "no-store" });
-                    if (!lookup.ok) throw new Error("Weather location unavailable");
-                    const data = await lookup.json();
-                    const place = (data.results || []).find(result =>
-                        result.country_code === "US" &&
-                        Number.isFinite(result.latitude) &&
-                        Number.isFinite(result.longitude));
-                    if (!place) {
-                        throw new Error("Weather location unavailable");
-                    }
-                    selectedLocation = {
-                        latitude: place.latitude,
-                        longitude: place.longitude
-                    };
+                // The C# server handles geocoding, fetching and logging. No duplicate
+                // weather log entries are produced when several browsers are open.
+                const response = await fetch("/api/weather/current", { cache: "no-store" });
+                if (!response.ok) {
+                    const result = await response.json().catch(() => ({}));
+                    throw new Error(result.error || "Weather service unavailable");
                 }
-
-                const query = new URLSearchParams({
-                    latitude: String(selectedLocation.latitude),
-                    longitude: String(selectedLocation.longitude)
-                });
-                const response = await fetch("/api/weather/current?" + query, {
-                    cache: "no-store"
-                });
-                if (!response.ok) throw new Error("Weather service unavailable");
                 const weather = await response.json();
+                if (weather.zipCode !== savedWeatherZip) {
+                    throw new Error("Waiting for the updated ZIP code…");
+                }
                 const current = weather.current;
                 if (!current || !Number.isFinite(current.temperature_2m)) {
                     throw new Error("Weather data unavailable for this location");
                 }
                 const [icon, description] = conditionFor(
                     current.weather_code, current.is_day === 1);
+                byId("weather-zip-label").textContent =
+                    weather.location ? weather.location + " · " + weather.zipCode
+                        : "ZIP " + weather.zipCode;
                 byId("weather-icon").textContent = icon;
                 byId("temperature").textContent =
                     Math.round(current.temperature_2m) + "°F";
@@ -1822,17 +2460,39 @@
                     Math.round(current.wind_speed_10m) + " mph";
                 byId("precipitation").textContent =
                     Number(current.precipitation).toFixed(2) + " in";
-                byId("weather-time").textContent =
-                    "Conditions for " + current.time.replace("T", " ") +
-                    " " + (weather.timezone_abbreviation || "local time");
                 byId("weather-content").hidden = false;
-                byId("weather-status").textContent =
-                    "Checked " + new Date().toLocaleTimeString();
+                // Show status only while loading or if an error occurs.
+                byId("weather-status").hidden = true;
+                byId("weather-status").textContent = "";
+                weatherNeedsRetry = false;
             } catch (error) {
+                weatherNeedsRetry = true;
+                byId("weather-status").hidden = false;
                 byId("weather-status").textContent = error.message +
-                    " · Retrying in five minutes.";
+                    " · Retrying shortly.";
             } finally {
                 weatherRequestPending = false;
+            }
+        }
+
+        async function loadWeatherSettings() {
+            if (weatherSavePending) return;
+            try {
+                const response = await fetch("/api/settings/weather", { cache: "no-store" });
+                if (!response.ok) throw new Error("Could not load the saved weather ZIP.");
+                const { zipCode } = await response.json();
+                if (!zipCode) throw new Error("Saved weather ZIP is missing.");
+                const changed = zipCode !== savedWeatherZip;
+                savedWeatherZip = zipCode;
+                showWeatherZip(zipCode);
+                if (!weatherZipDirty) byId("weather-zip").value = zipCode;
+                if (changed) {
+                    byId("weather-content").hidden = true;
+                    weatherNeedsRetry = true;
+                    await refreshWeather();
+                }
+            } catch (error) {
+                byId("weather-zip-message").textContent = error.message;
             }
         }
 
@@ -1930,18 +2590,96 @@
             return result;
         }
 
-        function applyTheme(theme) {
-            const selected = ["light", "dark", "night"].includes(theme) ? theme : "light";
-            document.body.dataset.theme = selected;
-            const radio = document.querySelector('input[name="theme"][value="' + selected + '"]');
-            if (radio) radio.checked = true;
-        }
+        // The stored manual theme is never overwritten by the sleep schedule.
+        let preferredTheme = "light";
+        let sleepSchedule = {
+            enabled: false, startTime: "22:00", stopTime: "07:00",
+            serverUtcOffsetMinutes: -new Date().getTimezoneOffset()
+        };
+        let sleepScheduleActive = false;
+        let appearanceSavePending = false;
+        let scheduleSavePending = false;
+        let sleepFormDirty = false;
 
-        async function loadTheme() {
+        function hhmmToMinutes(time) {
+            if (typeof time !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return NaN;
+            const [hour, minute] = time.split(":").map(Number);
+            return hour * 60 + minute;
+        }
+        function scheduleContainsMinute(start, stop, minute) {
+            if (![start, stop, minute].every(Number.isFinite) || start === stop) return false;
+            return start < stop ? minute >= start && minute < stop
+                : minute >= start || minute < stop; // Crosses midnight.
+        }
+        function dashboardLocalMinute(now = new Date()) {
+            const offset = Number.isFinite(sleepSchedule.serverUtcOffsetMinutes)
+                ? sleepSchedule.serverUtcOffsetMinutes : -now.getTimezoneOffset();
+            return (now.getUTCHours() * 60 + now.getUTCMinutes() + offset + 1440) % 1440;
+        }
+        function friendlyTime(value) {
+            const [hours, minutes] = value.split(":").map(Number);
+            return (hours % 12 || 12) + ":" + String(minutes).padStart(2, "0") +
+                (hours < 12 ? " AM" : " PM");
+        }
+        function applyAppearance() {
+            const active = sleepSchedule.enabled && scheduleContainsMinute(
+                hhmmToMinutes(sleepSchedule.startTime), hhmmToMinutes(sleepSchedule.stopTime),
+                dashboardLocalMinute());
+            sleepScheduleActive = active;
+            document.body.dataset.theme = active ? "night" : preferredTheme;
+            const choices = byId("theme-options");
+            choices.classList.toggle("is-locked", active);
+            choices.setAttribute("aria-disabled", String(active));
+            document.querySelectorAll('input[name="theme"]').forEach(radio => {
+                radio.checked = radio.value === preferredTheme;
+                radio.disabled = active || appearanceSavePending;
+            });
+            const notice = byId("theme-lock-message");
+            notice.hidden = !active;
+            notice.textContent = active
+                ? "🌙 Scheduled night mode is active. Theme choices unlock at " +
+                friendlyTime(sleepSchedule.stopTime) + ". Your saved theme (" +
+                preferredTheme + ") will return automatically." : "";
+            byId("sleep-active-status").textContent = !sleepSchedule.enabled
+                ? "Schedule is off. Your selected theme is in use."
+                : active ? "🌙 Active now · Night mode until " + friendlyTime(sleepSchedule.stopTime)
+                    : "Scheduled · Night mode starts at " + friendlyTime(sleepSchedule.startTime);
+        }
+        function applySleepSettings(value, updateForm = true) {
+            sleepSchedule = {
+                enabled: value.enabled === true,
+                startTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(value.startTime)
+                    ? value.startTime : "22:00",
+                stopTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(value.stopTime)
+                    ? value.stopTime : "07:00",
+                serverUtcOffsetMinutes: Number.isFinite(value.serverUtcOffsetMinutes)
+                    ? value.serverUtcOffsetMinutes : sleepSchedule.serverUtcOffsetMinutes
+            };
+            if (updateForm) {
+                byId("sleep-enabled").checked = sleepSchedule.enabled;
+                byId("sleep-start").value = sleepSchedule.startTime;
+                byId("sleep-stop").value = sleepSchedule.stopTime;
+            }
+            applyAppearance();
+        }
+        async function loadAppearanceSettings() {
+            if (appearanceSavePending || scheduleSavePending) return;
             try {
-                const response = await fetch("/api/settings/theme", { cache: "no-store" });
-                if (response.ok) applyTheme((await response.json()).theme);
-            } catch { /* Keep light mode if the server is temporarily unavailable. */ }
+                const [themeResponse, sleepResponse] = await Promise.all([
+                    fetch("/api/settings/theme", { cache: "no-store" }),
+                    fetch("/api/settings/sleep", { cache: "no-store" })
+                ]);
+                if (!themeResponse.ok || !sleepResponse.ok)
+                    throw new Error("Appearance settings unavailable.");
+                const [theme, schedule] = await Promise.all([
+                    themeResponse.json(), sleepResponse.json()
+                ]);
+                preferredTheme = ["light", "dark", "night"].includes(theme.theme)
+                    ? theme.theme : "light";
+                applySleepSettings(schedule, !sleepFormDirty);
+            } catch {
+                applyAppearance(); // Leave saved local state alone during a temporary outage.
+            }
         }
 
         // Clock settings are persisted by the C# server, so all screens on the LAN agree.
@@ -2183,16 +2921,122 @@
 
         document.querySelectorAll('input[name="theme"]').forEach(radio => {
             radio.addEventListener("change", async () => {
-                const previous = document.body.dataset.theme || "light";
+                if (sleepScheduleActive || appearanceSavePending) {
+                    applyAppearance(); // Also guard against a programmatic change to disabled radios.
+                    return;
+                }
+                const previous = preferredTheme;
+                appearanceSavePending = true;
+                applyAppearance();
+                let mustReload = false;
                 try {
                     const result = await requestSettings("/api/settings/theme", { theme: radio.value });
-                    applyTheme(result.theme);
+                    preferredTheme = result.theme;
                     byId("theme-message").textContent = "Appearance saved.";
                 } catch (error) {
-                    applyTheme(previous);
+                    preferredTheme = previous;
                     byId("theme-message").textContent = error.message;
+                    mustReload = true;
+                } finally {
+                    appearanceSavePending = false;
+                    applyAppearance();
+                    if (mustReload) await loadAppearanceSettings();
                 }
             });
+        });
+
+        // Touchscreen ZIP input is optional; the normal field also invokes the
+        // device's numeric keyboard. Neither input requires a physical keyboard.
+        const zipKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "Clear", "0", "⌫"];
+        for (const key of zipKeys) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = key;
+            button.setAttribute("aria-label", key === "⌫" ? "Backspace" : key);
+            if (key === "Clear" || key === "⌫") button.className = "pin-action";
+            button.addEventListener("click", () => {
+                const input = byId("weather-zip");
+                if (key === "Clear") input.value = "";
+                else if (key === "⌫") input.value = input.value.slice(0, -1);
+                else if (input.value.length < 10) {
+                    // Add the ZIP+4 separator only if a sixth digit is entered.
+                    if (/^[0-9]{5}$/.test(input.value)) input.value += "-";
+                    input.value += key;
+                }
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+            byId("weather-zip-pad").appendChild(button);
+        }
+        byId("weather-zip").addEventListener("input", () => { weatherZipDirty = true; });
+        byId("weather-settings-form").addEventListener("submit", async event => {
+            event.preventDefault();
+            if (weatherSavePending) return;
+            const requestedZip = byId("weather-zip").value.trim();
+            if (!/^[0-9]{5}(-[0-9]{4})?$/.test(requestedZip)) {
+                byId("weather-zip-message").textContent =
+                    "Enter five digits, or five digits followed by a four-digit extension.";
+                return;
+            }
+            weatherSavePending = true;
+            byId("weather-zip-save").disabled = true;
+            byId("weather-zip-message").textContent = "Saving weather location…";
+            try {
+                const result = await requestSettings("/api/settings/weather", { zipCode: requestedZip });
+                const changed = result.zipCode !== savedWeatherZip;
+                savedWeatherZip = result.zipCode;
+                showWeatherZip(savedWeatherZip);
+                byId("weather-zip").value = result.zipCode;
+                weatherZipDirty = false;
+                byId("weather-zip-message").textContent =
+                    "ZIP code saved. Weather readings and logging will use this location.";
+                if (changed) {
+                    byId("weather-content").hidden = true;
+                    weatherNeedsRetry = true;
+                    await refreshWeather();
+                }
+            } catch (error) {
+                byId("weather-zip-message").textContent = error.message;
+            } finally {
+                weatherSavePending = false;
+                byId("weather-zip-save").disabled = false;
+            }
+        });
+
+        byId("sleep-schedule-form").addEventListener("input", () => { sleepFormDirty = true; });
+        byId("sleep-schedule-form").addEventListener("submit", async event => {
+            event.preventDefault();
+            if (scheduleSavePending) return;
+            const requested = {
+                enabled: byId("sleep-enabled").checked,
+                startTime: byId("sleep-start").value,
+                stopTime: byId("sleep-stop").value
+            };
+            if (!Number.isFinite(hhmmToMinutes(requested.startTime)) ||
+                !Number.isFinite(hhmmToMinutes(requested.stopTime)) ||
+                requested.startTime === requested.stopTime) {
+                byId("sleep-message").textContent =
+                    "Choose valid, different start and stop times.";
+                return;
+            }
+            scheduleSavePending = true;
+            const controls = byId("sleep-schedule-form").querySelectorAll("input,button");
+            controls.forEach(control => control.disabled = true);
+            byId("sleep-message").textContent = "Saving sleep schedule…";
+            let mustReload = false;
+            try {
+                applySleepSettings(await requestSettings("/api/settings/sleep", requested));
+                sleepFormDirty = false;
+                byId("sleep-message").textContent = "Sleep schedule saved.";
+                byId("theme-message").textContent = "";
+            } catch (error) {
+                byId("sleep-message").textContent = error.message;
+                mustReload = true;
+            } finally {
+                scheduleSavePending = false;
+                controls.forEach(control => control.disabled = false);
+                applyAppearance();
+                if (mustReload) await loadAppearanceSettings();
+            }
         });
 
         function currentClockSelection() {
@@ -2255,10 +3099,200 @@
             catch { /* The server will also expire the session automatically. */ }
             showPage(settingsReturnPage);
         });
-        loadTheme();
+
+        // A single media element controls both sound widgets; the player does not
+        // restart as users move between the Dashboard and full-screen Clock.
+        const ambientTracks = [
+            { id: "rain", name: "🌧 Gentle rainfall", file: "audio/rain.ogg" },
+            { id: "waves", name: "🌊 Ocean waves", file: "audio/waves.ogg" },
+            { id: "summer-night", name: "🌙 Summer night · crickets & fire", file: "audio/summer-night.ogg" },
+            { id: "fireplace", name: "🔥 Crackling fireplace", file: "audio/fireplace.ogg" },
+            { id: "forest", name: "🌲 Forest morning & birds", file: "audio/forest.ogg" },
+            { id: "wind", name: "🍃 Gentle wind", file: "audio/wind.ogg" },
+            { id: "brown-noise", name: "◉ Soft brown noise", file: "audio/brown-noise.ogg" },
+            {
+                id: "chant-veni", name: "✝ Gregorian chant · Veni Sancte Spiritus",
+                file: "https://upload.wikimedia.org/wikipedia/commons/9/96/Veni.sancte.spiritus.ogg",
+                offline: "audio/chant-veni.ogg", online: true
+            },
+            {
+                id: "chant-puer", name: "✝ Gregorian chant · Puer natus est",
+                file: "https://upload.wikimedia.org/wikipedia/commons/4/44/Puer.natus.est.ogg",
+                offline: "audio/chant-puer.ogg", online: true
+            }
+        ];
+        const ambientAudio = byId("ambient-audio");
+        let ambientSelected = "rain";
+        let ambientVolume = 35;
+        let ambientTimer = 0;
+        let ambientTimerHandle = null;
+        let ambientTimerEnd = 0;
+        let ambientBusy = false;
+        let ambientProblem = "";
+        const offlineTracks = new Set();
+        try {
+            const saved = JSON.parse(localStorage.getItem("homeDashboardAmbient") || "{}");
+            if (ambientTracks.some(track => track.id === saved.track)) ambientSelected = saved.track;
+            if (Number.isFinite(saved.volume)) ambientVolume = Math.min(100, Math.max(0, saved.volume));
+            if ([0, 15, 30, 60, 120].includes(saved.timer)) ambientTimer = saved.timer;
+        } catch { /* Browser storage may be disabled. Sound controls still work. */ }
+
+        function saveAmbientSelection() {
+            try {
+                localStorage.setItem("homeDashboardAmbient", JSON.stringify({
+                    track: ambientSelected, volume: ambientVolume, timer: ambientTimer
+                }));
+            } catch { /* Playback does not require localStorage. */ }
+        }
+        function currentAmbientTrack() {
+            return ambientTracks.find(track => track.id === ambientSelected) || ambientTracks[0];
+        }
+        function ambientTrackSource() {
+            const track = currentAmbientTrack();
+            return track.online && offlineTracks.has(track.id) ? track.offline : track.file;
+        }
+        // Users can put the two public-domain chant files into wwwroot/audio/
+        // to listen to Gregorian chant without an internet connection.
+        for (const track of ambientTracks.filter(track => track.online)) {
+            fetch(track.offline, { method: "HEAD", cache: "no-store" }).then(response => {
+                if (response.ok) offlineTracks.add(track.id);
+            }).catch(() => { /* Local recording is optional. */ });
+        }
+        function clearAmbientTimer() {
+            if (ambientTimerHandle !== null) clearTimeout(ambientTimerHandle);
+            ambientTimerHandle = null;
+            ambientTimerEnd = 0;
+        }
+        function armAmbientTimer() {
+            clearAmbientTimer();
+            if (!ambientTimer || ambientAudio.paused) return;
+            ambientTimerEnd = Date.now() + ambientTimer * 60_000;
+            ambientTimerHandle = setTimeout(() => {
+                ambientAudio.pause();
+                ambientAudio.currentTime = 0;
+                clearAmbientTimer();
+                ambientProblem = "Sleep timer finished. Sound stopped.";
+                renderAmbientPlayer();
+            }, ambientTimer * 60_000);
+        }
+        function renderAmbientPlayer() {
+            const playing = !ambientAudio.paused;
+            const track = currentAmbientTrack();
+            const status = ambientProblem || (ambientBusy ? "Loading sound…" :
+                (playing ? "Playing: " : "Paused: ") +
+                track.name.replace(/^[^\p{L}\p{N}]+/u, "") +
+                (playing && ambientTimerEnd ? " · Stops in " +
+                    Math.max(1, Math.ceil((ambientTimerEnd - Date.now()) / 60_000)) + " min" : ""));
+            for (const place of ["home", "clock"]) {
+                byId(place + "-sound-select").value = ambientSelected;
+                byId(place + "-sound-volume").value = String(ambientVolume);
+                byId(place + "-sound-timer").value = String(ambientTimer);
+                byId(place + "-sound-status").textContent = status;
+                const button = byId(place + "-sound-play");
+                button.textContent = playing ? "Ⅱ" : "▶";
+                button.setAttribute("aria-label", playing ? "Pause calming sound" : "Play calming sound");
+                button.title = playing ? "Pause" : "Play";
+                const indicator = document.querySelector('[data-ambient-playing="' + place + '"]');
+                indicator.dataset.playing = String(playing);
+                indicator.querySelector('[data-ambient-label]').textContent = playing ? "Playing" : "Ready";
+            }
+        }
+        async function startAmbient() {
+            ambientProblem = "";
+            if (ambientAudio.getAttribute("src") !== ambientTrackSource()) {
+                ambientAudio.setAttribute("src", ambientTrackSource());
+                ambientAudio.load();
+            }
+            ambientAudio.volume = ambientVolume / 100;
+            ambientBusy = true;
+            renderAmbientPlayer();
+            try {
+                await ambientAudio.play();
+                armAmbientTimer();
+            } catch (error) {
+                ambientProblem = currentAmbientTrack().online
+                    ? "Chants require internet, or a recording saved in wwwroot/audio/."
+                    : "Audio did not start. Check the audio folder and your browser's sound settings.";
+            } finally {
+                ambientBusy = false;
+                renderAmbientPlayer();
+            }
+        }
+        function pauseAmbient() {
+            ambientAudio.pause();
+            clearAmbientTimer();
+            ambientProblem = "";
+            renderAmbientPlayer();
+        }
+        async function selectAmbientTrack(value) {
+            if (!ambientTracks.some(track => track.id === value)) return;
+            const wasPlaying = !ambientAudio.paused;
+            ambientAudio.pause();
+            clearAmbientTimer();
+            ambientSelected = value;
+            ambientProblem = "";
+            ambientAudio.setAttribute("src", ambientTrackSource());
+            ambientAudio.load();
+            saveAmbientSelection();
+            renderAmbientPlayer();
+            if (wasPlaying) await startAmbient();
+        }
+        for (const place of ["home", "clock"]) {
+            const selector = byId(place + "-sound-select");
+            for (const track of ambientTracks) {
+                const option = document.createElement("option");
+                option.value = track.id;
+                option.textContent = track.name + (track.online ? " · online" : "");
+                selector.appendChild(option);
+            }
+            selector.addEventListener("change", () => selectAmbientTrack(selector.value));
+            byId(place + "-sound-play").addEventListener("click", () => {
+                if (ambientAudio.paused) startAmbient(); else pauseAmbient();
+            });
+            byId(place + "-sound-volume").addEventListener("input", event => {
+                ambientVolume = Number(event.target.value);
+                ambientAudio.volume = ambientVolume / 100;
+                saveAmbientSelection();
+                renderAmbientPlayer();
+            });
+            byId(place + "-sound-timer").addEventListener("change", event => {
+                ambientTimer = Number(event.target.value);
+                armAmbientTimer();
+                saveAmbientSelection();
+                renderAmbientPlayer();
+            });
+        }
+        ambientAudio.volume = ambientVolume / 100;
+        ambientAudio.addEventListener("ended", () => {
+            // Local and remote tracks loop; this catches non-looping browser behavior.
+            renderAmbientPlayer();
+        });
+        ambientAudio.addEventListener("error", () => {
+            ambientBusy = false;
+            ambientProblem = currentAmbientTrack().online
+                ? "Chant couldn't load. Check internet or add an offline chant file."
+                : "Sound file missing. Copy the included audio folder into wwwroot.";
+            clearAmbientTimer();
+            renderAmbientPlayer();
+        });
+        ambientAudio.addEventListener("pause", renderAmbientPlayer);
+        ambientAudio.addEventListener("play", renderAmbientPlayer);
+        setInterval(() => {
+            if (ambientTimerEnd) renderAmbientPlayer();
+        }, 15_000);
+        renderAmbientPlayer();
+
+        loadAppearanceSettings();
         loadClockSettings();
+        loadWeatherSettings();
         renderClock();
         setInterval(renderClock, 1000);
+        // Re-evaluate at least every 10 seconds, including when a schedule crosses midnight.
+        setInterval(applyAppearance, 10_000);
+        // Sync changes made on other screens and refresh the server's DST offset.
+        setInterval(loadAppearanceSettings, 60_000);
+        setInterval(loadWeatherSettings, 60_000);
+        setInterval(() => { if (weatherNeedsRetry) refreshWeather(); }, 10_000);
 
         byId("device-filter").addEventListener("input", renderDevices);
         refreshDevices();
@@ -2269,6 +3303,8 @@
         setInterval(renderRosary, 15 * 60 * 1000);
         document.addEventListener("visibilitychange", () => {
             if (!document.hidden) {
+                loadAppearanceSettings();
+                loadWeatherSettings();
                 refreshDevices();
                 refreshWeather();
                 renderRosary();

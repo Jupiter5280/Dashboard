@@ -6,10 +6,13 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Logging;
 
 const string Subnet = "192.168.1";
 const string LogRootDirectory = @"L:\Logging";
 const string LogFileName = "devices.txt";
+const string WeatherLogFileName = "weather.txt";
 const string SettingsFileName = "dashboard-settings.json";
 
 const int PingTimeoutMilliseconds = 1_000;
@@ -26,6 +29,10 @@ ScanProgress? currentScan = null;
 
 using var cancellationSource = new CancellationTokenSource();
 using var outputLock = new SemaphoreSlim(1, 1);
+using var weatherWakeup = new SemaphoreSlim(0, 1);
+var weatherJsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+WeatherSnapshot? latestWeather = null;
+string? latestWeatherError = null;
 
 Console.CancelKeyPress += (_, eventArgs) =>
 {
@@ -36,6 +43,9 @@ Console.CancelKeyPress += (_, eventArgs) =>
 // The web server runs with the scanner and accepts connections from the LAN.
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://0.0.0.0:5088");
+// No scanner or framework informational messages in the console.
+// Fatal file-system errors below still go to stderr so a logging failure is visible.
+builder.Logging.ClearProviders();
 
 // Weather requests use a separate client so a weather outage cannot stop scans.
 using var weatherClient = new HttpClient
@@ -56,7 +66,11 @@ app.Use(async (context, next) =>
     await next();
 });
 app.UseDefaultFiles();
-app.UseStaticFiles();
+// Explicitly serve bundled Ogg Vorbis soundscapes with the audio MIME type.
+// This is configured at startup, before any requests are handled.
+var staticContentTypes = new FileExtensionContentTypeProvider();
+staticContentTypes.Mappings[".ogg"] = "audio/ogg";
+app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = staticContentTypes });
 // All settings changes require a PIN-authenticated session. A JSON request and
 // same-origin check also prevent ordinary cross-site forms from changing settings.
 bool IsAuthenticated(HttpContext context)
@@ -82,7 +96,9 @@ bool IsValidSettingsRequest(HttpContext context)
 }
 
 app.MapGet("/api/settings/theme", () => Results.Ok(new { theme = settingsStore.Theme }));
+app.MapGet("/api/settings/sleep", () => Results.Ok(settingsStore.Sleep));
 app.MapGet("/api/settings/clock", () => Results.Ok(settingsStore.Clock));
+app.MapGet("/api/settings/weather", () => Results.Ok(new { zipCode = settingsStore.WeatherZip }));
 app.MapGet("/api/settings/session", (HttpContext context) =>
     Results.Ok(new { authenticated = IsAuthenticated(context) }));
 
@@ -132,8 +148,22 @@ app.MapPost("/api/settings/theme", (HttpContext context, ThemeRequest request) =
     if (!IsAuthenticated(context)) return Results.Unauthorized();
     if (request.Theme is not ("light" or "dark" or "night"))
         return Results.BadRequest(new { error = "Invalid theme." });
-    settingsStore.ChangeTheme(request.Theme);
+    if (!settingsStore.TryChangeTheme(request.Theme))
+        return Results.Json(new { error = "Theme changes are disabled while the sleep schedule is active." },
+            statusCode: StatusCodes.Status409Conflict);
     return Results.Ok(new { theme = settingsStore.Theme });
+});
+
+app.MapPost("/api/settings/sleep", (HttpContext context, SleepScheduleRequest request) =>
+{
+    if (!IsValidSettingsRequest(context)) return Results.BadRequest();
+    if (!IsAuthenticated(context)) return Results.Unauthorized();
+    if (!DashboardSettingsStore.IsValidTime(request.StartTime) ||
+        !DashboardSettingsStore.IsValidTime(request.StopTime) ||
+        request.StartTime == request.StopTime)
+        return Results.BadRequest(new { error = "Choose valid, different start and stop times." });
+    settingsStore.ChangeSleep(request.Enabled, request.StartTime!, request.StopTime!);
+    return Results.Ok(settingsStore.Sleep);
 });
 
 app.MapPost("/api/settings/clock", (HttpContext context, ClockPreferences request) =>
@@ -144,6 +174,25 @@ app.MapPost("/api/settings/clock", (HttpContext context, ClockPreferences reques
         return Results.BadRequest(new { error = "Invalid clock style." });
     settingsStore.ChangeClock(request);
     return Results.Ok(settingsStore.Clock);
+});
+
+app.MapPost("/api/settings/weather", (HttpContext context, WeatherZipRequest request) =>
+{
+    if (!IsValidSettingsRequest(context)) return Results.BadRequest();
+    if (!IsAuthenticated(context)) return Results.Unauthorized();
+    string zip = request.ZipCode?.Trim() ?? "";
+    if (!DashboardSettingsStore.IsValidWeatherZip(zip))
+        return Results.BadRequest(new { error = "Enter a US ZIP code (12345 or 12345-6789)." });
+
+    if (settingsStore.ChangeWeatherZip(zip))
+    {
+        // Invalidate stale coordinates/observations when the location changes.
+        Volatile.Write(ref latestWeather, null);
+        Volatile.Write(ref latestWeatherError, null);
+        try { weatherWakeup.Release(); }
+        catch (SemaphoreFullException) { /* An immediate refresh is already queued. */ }
+    }
+    return Results.Ok(new { zipCode = settingsStore.WeatherZip });
 });
 
 app.MapPost("/api/settings/pin", (HttpContext context, ChangePinRequest request) =>
@@ -178,98 +227,176 @@ app.MapGet("/api/status", () =>
     };
 });
 
-// Keep the external weather service behind this local server. No API key is
-// needed for personal use; the browser calls this server on the same host.
-app.MapGet("/api/weather/locations", async Task<IResult> (
-    string name,
-    CancellationToken cancellationToken) =>
+// Weather is fetched and logged by the server every five minutes, independent
+// of whether a browser has the dashboard open. The browser only reads its cache.
+app.MapGet("/api/weather/current", () =>
 {
-    name = name.Trim();
+    WeatherSnapshot? current = Volatile.Read(ref latestWeather);
+    if (current is not null && current.ZipCode == settingsStore.WeatherZip)
+        return Results.Content(current.Payload, "application/json");
 
-    if (name.Length is < 2 or > 80)
+    return Results.Json(new
     {
-        return Results.BadRequest(new { error = "Enter a city or ZIP code." });
-    }
-
-    string url = "https://geocoding-api.open-meteo.com/v1/search" +
-        $"?name={Uri.EscapeDataString(name)}&count=5&language=en&format=json";
-
-    try
-    {
-        using HttpResponseMessage response = await weatherClient.GetAsync(
-            url, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return Results.StatusCode(StatusCodes.Status502BadGateway);
-        }
-
-        return Results.Content(
-            await response.Content.ReadAsStringAsync(cancellationToken),
-            "application/json");
-    }
-    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-    {
-        return Results.StatusCode(StatusCodes.Status504GatewayTimeout);
-    }
-    catch (HttpRequestException)
-    {
-        return Results.StatusCode(StatusCodes.Status502BadGateway);
-    }
+        error = Volatile.Read(ref latestWeatherError) ??
+            "Waiting for the first weather reading. Retrying automatically."
+    }, statusCode: StatusCodes.Status503ServiceUnavailable);
 });
 
-app.MapGet("/api/weather/current", async Task<IResult> (
-    double latitude,
-    double longitude,
-    CancellationToken cancellationToken) =>
+// One background worker owns external requests, preventing browser refreshes
+// from duplicating rows in the daily weather log.
+async Task RunWeatherLoopAsync(CancellationToken cancellationToken)
 {
-    if (!double.IsFinite(latitude) || !double.IsFinite(longitude) ||
-        latitude is < -90 or > 90 || longitude is < -180 or > 180)
+    ZipCoordinates? cachedCoordinates = null;
+    while (!cancellationToken.IsCancellationRequested)
     {
-        return Results.BadRequest(new { error = "Invalid coordinates." });
-    }
-
-    string url = "https://api.open-meteo.com/v1/forecast" +
-        $"?latitude={latitude.ToString(CultureInfo.InvariantCulture)}" +
-        $"&longitude={longitude.ToString(CultureInfo.InvariantCulture)}" +
-        "&current=temperature_2m,relative_humidity_2m," +
-        "apparent_temperature,precipitation,weather_code," +
-        "wind_speed_10m,is_day" +
-        "&temperature_unit=fahrenheit&wind_speed_unit=mph" +
-        "&precipitation_unit=inch&timezone=auto";
-
-    try
-    {
-        using HttpResponseMessage response = await weatherClient.GetAsync(
-            url, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
+        // Consume a ZIP-change signal that triggered the current refresh.
+        // This prevents a second immediate request for the same new location.
+        while (weatherWakeup.Wait(0)) { }
+        string zipCode = settingsStore.WeatherZip;
+        try
         {
-            return Results.StatusCode(StatusCodes.Status502BadGateway);
+            string fiveDigitZip = zipCode[..5]; // ZIP+4 uses the 5-digit area.
+            if (cachedCoordinates is null || cachedCoordinates.ZipCode != fiveDigitZip)
+                cachedCoordinates = await ResolveZipAsync(fiveDigitZip, cancellationToken);
+
+            ZipCoordinates location = cachedCoordinates;
+            string url = "https://api.open-meteo.com/v1/forecast" +
+                $"?latitude={location.Latitude.ToString(CultureInfo.InvariantCulture)}" +
+                $"&longitude={location.Longitude.ToString(CultureInfo.InvariantCulture)}" +
+                "&current=temperature_2m,relative_humidity_2m," +
+                "apparent_temperature,precipitation,rain,showers,snowfall," +
+                "weather_code,cloud_cover,pressure_msl,surface_pressure," +
+                "wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day" +
+                "&temperature_unit=fahrenheit&wind_speed_unit=mph" +
+                "&precipitation_unit=inch&timezone=auto";
+
+            using HttpResponseMessage response = await weatherClient.GetAsync(url, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            using JsonDocument data = JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync(cancellationToken));
+            JsonElement source = data.RootElement;
+            JsonElement current = source.GetProperty("current");
+            JsonElement units = source.GetProperty("current_units");
+            if (current.ValueKind != JsonValueKind.Object ||
+                !current.TryGetProperty("temperature_2m", out JsonElement temperature) ||
+                temperature.ValueKind != JsonValueKind.Number)
+                throw new InvalidDataException("Weather response is missing current readings.");
+
+            // A ZIP may have been changed while the request was in flight.
+            if (settingsStore.WeatherZip != zipCode) continue;
+            DateTimeOffset recordedAt = DateTimeOffset.Now;
+            string abbreviation = source.TryGetProperty("timezone_abbreviation", out var timezone)
+                ? timezone.GetString() ?? "" : "";
+            string payload = JsonSerializer.Serialize(new
+            {
+                zipCode,
+                location = location.Name,
+                checkedAt = recordedAt,
+                timezone_abbreviation = abbreviation,
+                current = current.Clone(),
+                current_units = units.Clone()
+            }, weatherJsonOptions);
+
+            // Each weather.txt line contains all fields *and their units* returned
+            // by Open-Meteo, plus the ZIP, place and the local recording timestamp.
+            string logLine = JsonSerializer.Serialize(new
+            {
+                loggedAt = recordedAt,
+                zipCode,
+                location = location.Name,
+                source = "Open-Meteo",
+                weather = source.Clone()
+            }, weatherJsonOptions);
+            await WriteWeatherLogAsync(logLine, cancellationToken);
+            Volatile.Write(ref latestWeather, new WeatherSnapshot(zipCode, payload));
+            Volatile.Write(ref latestWeatherError, null);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            break;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or
+            JsonException or OperationCanceledException or IOException or
+            UnauthorizedAccessException or InvalidOperationException)
+        {
+            if (settingsStore.WeatherZip == zipCode)
+            {
+                Volatile.Write(ref latestWeatherError,
+                    exception is InvalidDataException ? exception.Message :
+                    "Weather update failed; the server will retry automatically.");
+                // Errors are logged separately from readings, never as fake weather data.
+                try
+                {
+                    await WriteWeatherLogAsync(JsonSerializer.Serialize(new
+                    {
+                        loggedAt = DateTimeOffset.Now,
+                        zipCode,
+                        error = exception.Message
+                    }, weatherJsonOptions), cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (IOException fileError)
+                {
+                    Console.Error.WriteLine($"Cannot write weather log: {fileError.Message}");
+                }
+                catch (UnauthorizedAccessException fileError)
+                {
+                    Console.Error.WriteLine($"Cannot write weather log: {fileError.Message}");
+                }
+            }
         }
 
-        return Results.Content(
-            await response.Content.ReadAsStringAsync(cancellationToken),
-            "application/json");
+        try { await weatherWakeup.WaitAsync(TimeSpan.FromMinutes(5), cancellationToken); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { break; }
     }
-    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+}
+
+async Task<ZipCoordinates> ResolveZipAsync(string zip, CancellationToken cancellationToken)
+{
+    // Zippopotam.us provides coordinates for US ZIP codes without an API key.
+    using HttpResponseMessage response = await weatherClient.GetAsync(
+        "https://api.zippopotam.us/us/" + zip, cancellationToken);
+    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        throw new InvalidDataException("The weather ZIP code could not be located.");
+    response.EnsureSuccessStatusCode();
+    using JsonDocument document = JsonDocument.Parse(
+        await response.Content.ReadAsStringAsync(cancellationToken));
+    JsonElement root = document.RootElement;
+    if (!root.TryGetProperty("places", out JsonElement places) ||
+        places.ValueKind != JsonValueKind.Array || places.GetArrayLength() == 0)
+        throw new InvalidDataException("No location was returned for this ZIP code.");
+    JsonElement place = places[0];
+    if (!double.TryParse(place.GetProperty("latitude").GetString(),
+            NumberStyles.Float, CultureInfo.InvariantCulture, out double latitude) ||
+        !double.TryParse(place.GetProperty("longitude").GetString(),
+            NumberStyles.Float, CultureInfo.InvariantCulture, out double longitude))
+        throw new InvalidDataException("Weather location has invalid coordinates.");
+    string city = place.GetProperty("place name").GetString() ?? zip;
+    string state = place.GetProperty("state abbreviation").GetString() ?? "";
+    return new ZipCoordinates(zip, latitude, longitude,
+        string.IsNullOrEmpty(state) ? city : $"{city}, {state}");
+}
+
+async Task WriteWeatherLogAsync(string line, CancellationToken cancellationToken)
+{
+    await outputLock.WaitAsync(cancellationToken);
+    try
     {
-        return Results.StatusCode(StatusCodes.Status504GatewayTimeout);
+        DateTime now = DateTime.Now;
+        string directory = Path.Combine(LogRootDirectory, now.ToString("yyyy"),
+            now.ToString("MM"), now.ToString("dd"));
+        Directory.CreateDirectory(directory);
+        await File.AppendAllTextAsync(Path.Combine(directory, WeatherLogFileName),
+            line + Environment.NewLine, cancellationToken);
     }
-    catch (HttpRequestException)
-    {
-        return Results.StatusCode(StatusCodes.Status502BadGateway);
-    }
-});
+    finally { outputLock.Release(); }
+}
 
 await app.StartAsync();
-
-Console.WriteLine($"Scanning {Subnet}.1 through {Subnet}.254");
-Console.WriteLine($"Log directory: {LogRootDirectory}");
-Console.WriteLine("Dashboard on this PC: http://localhost:5088");
-Console.WriteLine("Dashboard on your LAN: http://<this PC's IPv4 address>:5088");
-Console.WriteLine($"Devices are marked down after {MissesBeforeDown} missed scans.");
-Console.WriteLine("Press Ctrl+C to stop.");
+Task weatherWorker = RunWeatherLoopAsync(cancellationSource.Token);
 
 try
 {
@@ -350,7 +477,7 @@ try
 }
 catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
 {
-    Console.WriteLine("\nScanner stopped.");
+    // Normal shutdown. Device and weather logs were already written to disk.
 }
 catch (UnauthorizedAccessException exception)
 {
@@ -364,6 +491,8 @@ catch (IOException exception)
 }
 finally
 {
+    cancellationSource.Cancel();
+    await weatherWorker;
     await app.StopAsync();
 }
 
@@ -554,7 +683,7 @@ async Task WriteOutputAsync(
     string message,
     CancellationToken cancellationToken)
 {
-    // Multiple pings can finish simultaneously. Serialize file/console output.
+    // Multiple pings can finish simultaneously; serialize disk writes.
     await outputLock.WaitAsync(cancellationToken);
 
     try
@@ -569,7 +698,6 @@ async Task WriteOutputAsync(
 
         string logFilePath = Path.Combine(dailyDirectory, LogFileName);
 
-        Console.WriteLine(message);
         Directory.CreateDirectory(dailyDirectory);
 
         // Creates the file if absent, and appends if it already exists.
@@ -645,6 +773,11 @@ record DeviceView(
 record PinRequest(string? Pin);
 record ChangePinRequest(string? CurrentPin, string? NewPin);
 record ThemeRequest(string? Theme);
+record WeatherZipRequest(string? ZipCode);
+record WeatherSnapshot(string ZipCode, string Payload);
+record ZipCoordinates(string ZipCode, double Latitude, double Longitude, string Name);
+record SleepScheduleRequest(bool Enabled, string? StartTime, string? StopTime);
+record SleepSchedulePreferences(bool Enabled, string StartTime, string StopTime, int ServerUtcOffsetMinutes);
 record ClockPreferences(string Style, bool ShowSeconds, bool ShowDate);
 record LoginAttempt(int Count, DateTimeOffset FirstAttempt, DateTimeOffset BlockedUntil);
 
@@ -664,25 +797,60 @@ sealed class DashboardSettingsStore
             if (settings.Salt.Length < 16 || settings.Hash.Length < 32 ||
                 settings.Theme is not ("light" or "dark" or "night"))
                 throw new InvalidDataException("Invalid dashboard settings values.");
-            // Previously saved files omit clock preferences; keep their PIN and theme.
+            // Previously saved files omit some preferences; keep their PIN and theme.
+            bool needsWeatherZipMigration = !IsValidWeatherZip(settings.WeatherZip);
             if (settings.ClockStyle is not ("digital12" or "digital24" or "analog" or "flip"))
                 settings = settings with { ClockStyle = "digital12" };
             settings = settings with
             {
                 ClockShowSeconds = settings.ClockShowSeconds ?? true,
-                ClockShowDate = settings.ClockShowDate ?? true
+                ClockShowDate = settings.ClockShowDate ?? true,
+                SleepEnabled = settings.SleepEnabled ?? false,
+                SleepStartTime = IsValidTime(settings.SleepStartTime) &&
+                    settings.SleepStartTime != settings.SleepStopTime ? settings.SleepStartTime : "22:00",
+                SleepStopTime = IsValidTime(settings.SleepStopTime) &&
+                    settings.SleepStartTime != settings.SleepStopTime ? settings.SleepStopTime : "07:00",
+                WeatherZip = IsValidWeatherZip(settings.WeatherZip) ? settings.WeatherZip : "37615-5029"
             };
+            if (needsWeatherZipMigration) Save();
         }
         else
         {
             byte[] salt = RandomNumberGenerator.GetBytes(16);
             settings = new StoredSettings("light", salt, HashPin("1234", salt),
-                "digital12", true, true);
+                "digital12", true, true, WeatherZip: "37615-5029");
             Save();
         }
     }
 
     public string Theme { get { lock (gate) return settings.Theme; } }
+    public string WeatherZip { get { lock (gate) return settings.WeatherZip ?? "37615-5029"; } }
+
+    public static bool IsValidWeatherZip(string? zip) =>
+        zip is not null && (System.Text.RegularExpressions.Regex.IsMatch(zip,
+            @"^[0-9]{5}(-[0-9]{4})?$"));
+
+    public bool ChangeWeatherZip(string zip)
+    {
+        lock (gate)
+        {
+            if (settings.WeatherZip == zip) return false;
+            settings = settings with { WeatherZip = zip };
+            Save();
+            return true;
+        }
+    }
+    public SleepSchedulePreferences Sleep
+    {
+        get
+        {
+            lock (gate) return new SleepSchedulePreferences(
+            settings.SleepEnabled ?? false,
+            settings.SleepStartTime ?? "22:00",
+            settings.SleepStopTime ?? "07:00",
+            (int)DateTimeOffset.Now.Offset.TotalMinutes);
+        }
+    }
     public ClockPreferences Clock
     {
         get
@@ -701,13 +869,46 @@ sealed class DashboardSettingsStore
         }
     }
 
-    public void ChangeTheme(string theme)
+    // Recheck at save time, not just when the page was opened.
+    public bool TryChangeTheme(string theme)
     {
         lock (gate)
         {
+            if (IsInSleepWindow(settings.SleepEnabled ?? false,
+                settings.SleepStartTime ?? "22:00", settings.SleepStopTime ?? "07:00",
+                TimeOnly.FromDateTime(DateTime.Now))) return false;
             settings = settings with { Theme = theme };
             Save();
+            return true;
         }
+    }
+
+    public void ChangeSleep(bool enabled, string startTime, string stopTime)
+    {
+        lock (gate)
+        {
+            settings = settings with
+            {
+                SleepEnabled = enabled,
+                SleepStartTime = startTime,
+                SleepStopTime = stopTime
+            };
+            Save();
+        }
+    }
+
+    public static bool IsValidTime(string? value) =>
+        TimeOnly.TryParseExact(value, "HH:mm", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out _);
+
+    private static bool IsInSleepWindow(bool enabled, string start, string stop, TimeOnly now)
+    {
+        if (!enabled || !IsValidTime(start) || !IsValidTime(stop) || start == stop)
+            return false;
+        var startAt = TimeOnly.ParseExact(start, "HH:mm", CultureInfo.InvariantCulture);
+        var stopAt = TimeOnly.ParseExact(stop, "HH:mm", CultureInfo.InvariantCulture);
+        return startAt < stopAt ? now >= startAt && now < stopAt
+            : now >= startAt || now < stopAt;
     }
 
     public void ChangeClock(ClockPreferences requested)
@@ -746,5 +947,7 @@ sealed class DashboardSettingsStore
     }
 
     private sealed record StoredSettings(string Theme, byte[] Salt, byte[] Hash,
-        string? ClockStyle = null, bool? ClockShowSeconds = null, bool? ClockShowDate = null);
+        string? ClockStyle = null, bool? ClockShowSeconds = null, bool? ClockShowDate = null,
+        bool? SleepEnabled = null, string? SleepStartTime = null, string? SleepStopTime = null,
+        string? WeatherZip = null);
 }
